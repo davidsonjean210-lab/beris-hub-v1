@@ -1,143 +1,219 @@
--- BERIS HUB ULTRA DIOS 😈🔥
+-- BERIS HUB COMPLETO (VERSIÓN FINAL)
+-- LocalScript (StarterPlayerScripts)
 
 local player = game.Players.LocalPlayer
-
--- GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "BerisHubUltra"
-screenGui.Parent = player:WaitForChild("PlayerGui")
-
-local frame = Instance.new("Frame")
-frame.Parent = screenGui
-frame.Size = UDim2.new(0, 220, 0, 320)
-frame.Position = UDim2.new(0.05, 0, 0.25, 0)
-frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
-
-local function crearBoton(texto, posicionY)
-    local boton = Instance.new("TextButton")
-    boton.Parent = frame
-    boton.Size = UDim2.new(1, 0, 0, 35)
-    boton.Position = UDim2.new(0, 0, posicionY, 0)
-    boton.Text = texto
-    boton.BackgroundColor3 = Color3.fromRGB(45,45,45)
-    boton.TextColor3 = Color3.fromRGB(255,255,255)
-    return boton
-end
-
--- BOTONES
-local tp = crearBoton("TP (Guardar)", 0)
-local tp2 = crearBoton("TP2 (Ir)", 0.1)
-local tras = crearBoton("TRAS (Noclip)", 0.2)
-local regenBtn = crearBoton("REGEN VIDA", 0.3)
-local moneyBtn = crearBoton("INGRESOS +", 0.4)
-local dupBtn = crearBoton("DUPLICAR INGRESOS", 0.5)
-local autoBtn = crearBoton("AUTO RECOGER", 0.6)
 
 -- VARIABLES
 local savedPosition = nil
 local noclip = false
-local regen = false
-local moneyBoost = false
-local dupMoney = false
-local autoFarm = false
+local speedOn = false
+local autoCollect = false
+local godMode = false
+local minimized = false
 
-local function getCharacter()
-    return player.Character or player.CharacterAdded:Wait()
+local normalSpeed = 16
+local fastSpeed = 50
+local range = 12
+
+-- 💰 MULTIPLICADOR DINERO
+local moneyMode = 1
+local modes = {1, 2, 5, 10}
+local modeIndex = 1
+
+-- GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "BerisHub"
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 420)
+frame.Position = UDim2.new(0, 20, 0.3, 0)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.Parent = gui
+
+-- BOTÓN CREADOR
+local function createButton(text, posY)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -10, 0, 40)
+    btn.Position = UDim2.new(0, 5, 0, posY)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Text = text
+    btn.Parent = frame
+    return btn
 end
 
--- FUNCIONES
+-- TOGGLE VISUAL
+local function setToggle(btn, state, name)
+    if state then
+        btn.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+        btn.Text = name .. ": ON"
+    else
+        btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        btn.Text = name .. ": OFF"
+    end
+end
 
--- Guardar posición
-tp.MouseButton1Click:Connect(function()
-    local character = getCharacter()
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if hrp then
-        savedPosition = hrp.Position
+-- BOTONES
+local btnSave = createButton("Tp (Guardar)", 5)
+local btnTp = createButton("Tp2 (Teleport)", 50)
+local btnNoclip = createButton("Tras: OFF", 95)
+local btnSpeed = createButton("Velocidad: OFF", 140)
+local btnRegen = createButton("Regen", 185)
+local btnAuto = createButton("Auto Collect", 230)
+local btnGod = createButton("Vida Infinita", 275)
+local btnMoney = createButton("Ingreso x1", 320)
+
+-- MINIMIZAR
+local btnMin = Instance.new("TextButton")
+btnMin.Size = UDim2.new(0, 50, 0, 25)
+btnMin.Position = UDim2.new(1, -55, 0, 5)
+btnMin.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+btnMin.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnMin.Text = "MIN"
+btnMin.Parent = frame
+
+btnMin.MouseButton1Click:Connect(function()
+    minimized = not minimized
+
+    for _, v in pairs(frame:GetChildren()) do
+        if v:IsA("TextButton") and v ~= btnMin then
+            v.Visible = not minimized
+        end
+    end
+
+    if minimized then
+        frame.Size = UDim2.new(0, 200, 0, 35)
+        btnMin.Text = "OPEN"
+    else
+        frame.Size = UDim2.new(0, 200, 0, 420)
+        btnMin.Text = "MIN"
     end
 end)
 
--- Teleport
-tp2.MouseButton1Click:Connect(function()
-    local character = getCharacter()
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if hrp and savedPosition then
-        hrp.CFrame = CFrame.new(savedPosition)
+-- FUNCIÓN PERSONAJE
+local function getChar()
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    local hum = char:WaitForChild("Humanoid")
+    return char, hrp, hum
+end
+
+-- TP GUARDAR
+btnSave.MouseButton1Click:Connect(function()
+    local _, hrp = getChar()
+    savedPosition = hrp.Position
+    btnSave.Text = "Guardado ✔"
+    task.wait(1)
+    btnSave.Text = "Tp (Guardar)"
+end)
+
+-- TELEPORT
+btnTp.MouseButton1Click:Connect(function()
+    if savedPosition then
+        local _, hrp = getChar()
+        hrp.CFrame = CFrame.new(savedPosition + Vector3.new(0, 3, 0))
+    else
+        btnTp.Text = "No hay posición"
+        task.wait(1)
+        btnTp.Text = "Tp2 (Teleport)"
     end
 end)
 
--- Noclip
-tras.MouseButton1Click:Connect(function()
+-- NOCLIP
+btnNoclip.MouseButton1Click:Connect(function()
     noclip = not noclip
+    setToggle(btnNoclip, noclip, "Tras")
 end)
 
--- Regen vida
-regenBtn.MouseButton1Click:Connect(function()
-    regen = not regen
+-- VELOCIDAD
+btnSpeed.MouseButton1Click:Connect(function()
+    speedOn = not speedOn
+    local _, _, hum = getChar()
+
+    hum.WalkSpeed = speedOn and fastSpeed or normalSpeed
+    setToggle(btnSpeed, speedOn, "Velocidad")
 end)
 
--- Aumentar ingresos
-moneyBtn.MouseButton1Click:Connect(function()
-    moneyBoost = not moneyBoost
+-- REGEN
+btnRegen.MouseButton1Click:Connect(function()
+    local _, _, hum = getChar()
+    hum.Health = hum.MaxHealth
+
+    btnRegen.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+    btnRegen.Text = "Regen ✔"
+
+    task.wait(1)
+
+    btnRegen.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    btnRegen.Text = "Regen"
 end)
 
--- Duplicar ingresos
-dupBtn.MouseButton1Click:Connect(function()
-    dupMoney = not dupMoney
+-- AUTO COLLECT
+btnAuto.MouseButton1Click:Connect(function()
+    autoCollect = not autoCollect
+    setToggle(btnAuto, autoCollect, "Auto Collect")
 end)
 
--- Auto recoger
-autoBtn.MouseButton1Click:Connect(function()
-    autoFarm = not autoFarm
+-- GOD MODE
+btnGod.MouseButton1Click:Connect(function()
+    godMode = not godMode
+    setToggle(btnGod, godMode, "Vida Infinita")
 end)
 
--- LOOP PRINCIPAL
-game:GetService("RunService").RenderStepped:Connect(function()
-    local character = player.Character
-    if character then
+-- MONEY MODE (x1 x2 x5 x10)
+btnMoney.MouseButton1Click:Connect(function()
+    modeIndex = modeIndex + 1
+    if modeIndex > #modes then
+        modeIndex = 1
+    end
 
-        -- Noclip
-        if noclip then
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
+    moneyMode = modes[modeIndex]
+    btnMoney.Text = "Ingreso x" .. moneyMode
+    btnMoney.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+end)
+
+-- LOOPS
+game:GetService("RunService").Stepped:Connect(function()
+    local char = player.Character
+    if not char then return end
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hrp then return end
+
+    -- NOCLIP
+    if noclip then
+        for _, v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = false
             end
         end
+    end
 
-        -- Regen
-        if regen then
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.Health = math.min(humanoid.Health + 1, humanoid.MaxHealth)
-            end
-        end
+    -- GOD MODE
+    if godMode and hum then
+        hum.Health = hum.MaxHealth
+    end
 
-        -- Dinero
-        local stats = player:FindFirstChild("leaderstats")
-        if stats then
-            for _, stat in pairs(stats:GetChildren()) do
-                if stat:IsA("IntValue") then
-
-                    if moneyBoost then
-                        stat.Value = stat.Value + 1
+    -- AUTO COLLECT
+    if autoCollect then
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") then
+                if v.Name == "Coin" or v.Name == "Collect" or v.Name == "Drop" then
+                    if (v.Position - hrp.Position).Magnitude <= range then
+                        v:Destroy()
                     end
-
-                    if dupMoney then
-                        stat.Value = stat.Value * 2
-                    end
-
                 end
             end
         end
-
-        -- Auto recoger (TP a objetos cercanos)
-        if autoFarm then
-            for _, obj in pairs(workspace:GetDescendants()) do
-                if obj:IsA("Part") and obj.Name:lower():find("coin") then
-                    character:MoveTo(obj.Position)
-                end
-            end
-        end
-
     end
 end)
+
+-- 💰 FUNCIÓN DINERO (USAR EN TU JUEGO)
+function addMoney(amount)
+    local stats = player:FindFirstChild("leaderstats")
+    if stats and stats:FindFirstChild("Coins") then
+        stats.Coins.Value += (amount * moneyMode)
+    end
+end
