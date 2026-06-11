@@ -1,94 +1,56 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-local player = Players.LocalPlayer
 
 ------------------------------------------------
--- ESPERAR PLAYERGUI (IMPORTANTE)
+-- REMOTE EVENT
 ------------------------------------------------
-local playerGui = player:WaitForChild("PlayerGui")
+local event = Instance.new("RemoteEvent")
+event.Name = "GiveMoney"
+event.Parent = ReplicatedStorage
 
 ------------------------------------------------
--- CONFIG
+-- MODOS DE INGRESO
 ------------------------------------------------
-local incomeMode = "BASICO"
-
-local config = {
+local modes = {
     BASICO = {money = 100, delay = 2},
-    PREMIUM = {money = 100000, delay = 1.5},
-    PLUS = {money = 20000000, delay = 1}
+    PREMIUM = {money = 10000, delay = 1.5},
+    PLUS = {money = 20000, delay = 1}
 }
 
 ------------------------------------------------
--- UI
+-- MODO GLOBAL (puedes cambiarlo luego con UI)
 ------------------------------------------------
-local gui = Instance.new("ScreenGui")
-gui.Name = "IncomeUI"
-gui.ResetOnSpawn = false
-gui.Parent = playerGui
-
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 150)
-frame.Position = UDim2.new(0, 20, 0, 200)
-frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
-frame.Parent = gui
-
-local label = Instance.new("TextLabel")
-label.Size = UDim2.new(1,0,0,40)
-label.BackgroundTransparency = 1
-label.TextColor3 = Color3.fromRGB(255,255,255)
-label.Text = "Modo: BASICO"
-label.Parent = frame
+local incomeMode = "BASICO"
 
 ------------------------------------------------
--- BOTÓN CREATOR
+-- LOOP REAL DE DINERO
 ------------------------------------------------
-local function btn(text, y)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1,-10,0,30)
-    b.Position = UDim2.new(0,5,0,y)
-    b.Text = text
-    b.BackgroundColor3 = Color3.fromRGB(40,40,40)
-    b.TextColor3 = Color3.fromRGB(255,255,255)
-    b.Parent = frame
-    return b
-end
-
-------------------------------------------------
--- BOTONES
-------------------------------------------------
-btn("BASICO", 45).MouseButton1Click:Connect(function()
-    incomeMode = "BASICO"
-    label.Text = "Modo: BASICO"
-end)
-
-btn("PREMIUM", 80).MouseButton1Click:Connect(function()
-    incomeMode = "PREMIUM"
-    label.Text = "Modo: PREMIUM"
-end)
-
-btn("PLUS", 115).MouseButton1Click:Connect(function()
-    incomeMode = "PLUS"
-    label.Text = "Modo: PLUS"
-end)
-
-------------------------------------------------
--- DINERO LOOP
-------------------------------------------------
-local function giveMoney(amount)
-    local stats = player:FindFirstChild("leaderstats")
-    if not stats then return end
-
-    for _, v in pairs(stats:GetChildren()) do
-        if v:IsA("IntValue") then
-            v.Value += amount
-            return
-        end
-    end
-end
-
 task.spawn(function()
     while true do
-        local data = config[incomeMode]
-        giveMoney(data.money)
-        task.wait(data.delay)
+        task.wait(1)
+
+        for _, player in pairs(Players:GetPlayers()) do
+            local data = modes[incomeMode]
+            if not data then return end
+
+            local stats = player:FindFirstChild("leaderstats")
+            if stats then
+                for _, v in pairs(stats:GetChildren()) do
+                    if v:IsA("IntValue") then
+                        v.Value += data.money
+                        break
+                    end
+                end
+            end
+        end
+    end
+end)
+
+------------------------------------------------
+-- (OPCIONAL) recibir cambios desde cliente
+------------------------------------------------
+event.OnServerEvent:Connect(function(player, newMode)
+    if modes[newMode] then
+        incomeMode = newMode
     end
 end)
