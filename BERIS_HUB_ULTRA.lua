@@ -1,56 +1,58 @@
--- BERIS HUB ULTRA FIXED (NO BLACK SCREEN)
+--// BERIS HUB FINAL PRO + MOBILE MODE
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 
 ------------------------------------------------
--- SAFE CHARACTER
+-- PERSONAJE
 ------------------------------------------------
-local function getChar()
+local function char()
     return player.Character or player.CharacterAdded:Wait()
 end
 
-local function getHRP()
-    local c = getChar()
-    return c:WaitForChild("HumanoidRootPart")
+local function hrp()
+    return char():WaitForChild("HumanoidRootPart")
 end
 
 ------------------------------------------------
 -- VARIABLES
 ------------------------------------------------
-local tp1, tp3 = nil, nil
+local tpPoint
 
 local noclip = false
-local flying = false
-local autoCollect = false
-local safeMode = false
+local combatOn = false
+local combatMode = "BASICO"
 
-local incomeMode = "BASIC"
-local loopDelay = 1
+local autoRegen = true
+local antiVoid = true
+local autoRevive = true
+
+local incomeMode = "BASICO"
+local incomeMult = 1
+
+local lastSafe
 
 ------------------------------------------------
--- GUI
+-- UI PRINCIPAL
 ------------------------------------------------
 local gui = Instance.new("ScreenGui")
-gui.Name = "BerisHubUltra"
-gui.ResetOnSpawn = false
+gui.Name = "BerisHubFinal"
 gui.Parent = player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 240, 0, 420)
+frame.Size = UDim2.new(0, 260, 0, 460)
 frame.Position = UDim2.new(0, 20, 0, 200)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-frame.Active = true
-frame.Draggable = true
+frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
 frame.Parent = gui
 
-local function btn(t, y)
+local function btn(text, y)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, -10, 0, 35)
+    b.Size = UDim2.new(1, -10, 0, 32)
     b.Position = UDim2.new(0, 5, 0, y)
-    b.Text = t
+    b.Text = text
     b.BackgroundColor3 = Color3.fromRGB(40,40,40)
     b.TextColor3 = Color3.fromRGB(255,255,255)
     b.Parent = frame
@@ -58,89 +60,26 @@ local function btn(t, y)
 end
 
 ------------------------------------------------
--- BUTTONS
+-- TP
 ------------------------------------------------
-local tpSave = btn("TP SAVE", 10)
-local tpGo = btn("TP GO", 50)
-local tp3Save = btn("TP3 SAVE", 90)
-local tp3Go = btn("TP3 GO", 130)
-
-local flyBtn = btn("FLY", 170)
-local noclipBtn = btn("TRAS", 210)
-local collectBtn = btn("AUTO COLLECT", 250)
-local incomeBtn = btn("INCOME", 290)
-local safeBtn = btn("SAFE MODE", 330)
-
-------------------------------------------------
--- TP SYSTEM
-------------------------------------------------
-tpSave.MouseButton1Click:Connect(function()
-    tp1 = getHRP().CFrame
+btn("TP GUARDAR", 10).MouseButton1Click:Connect(function()
+    tpPoint = hrp().CFrame
 end)
 
-tpGo.MouseButton1Click:Connect(function()
-    if tp1 then getHRP().CFrame = tp1 end
-end)
-
-tp3Save.MouseButton1Click:Connect(function()
-    tp3 = getHRP().CFrame
-end)
-
-tp3Go.MouseButton1Click:Connect(function()
-    if tp3 then getHRP().CFrame = tp3 end
+btn("TP IR", 45).MouseButton1Click:Connect(function()
+    if tpPoint then hrp().CFrame = tpPoint end
 end)
 
 ------------------------------------------------
--- FLY (FIXED)
+-- NOCLIP
 ------------------------------------------------
-local bv
-
-flyBtn.MouseButton1Click:Connect(function()
-    flying = not flying
-    flyBtn.Text = flying and "FLY ON" or "FLY OFF"
-
-    if flying then
-        bv = Instance.new("BodyVelocity")
-        bv.MaxForce = Vector3.new(1e9,1e9,1e9)
-        bv.Parent = getHRP()
-    else
-        if bv then bv:Destroy() bv = nil end
-    end
-end)
-
-RunService.RenderStepped:Connect(function()
-    if flying and bv then
-        local cam = workspace.CurrentCamera
-        local dir = Vector3.zero
-
-        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then
-            dir += cam.CFrame.LookVector
-        end
-        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.S) then
-            dir -= cam.CFrame.LookVector
-        end
-        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.A) then
-            dir -= cam.CFrame.RightVector
-        end
-        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.D) then
-            dir += cam.CFrame.RightVector
-        end
-
-        bv.Velocity = dir * 60
-    end
-end)
-
-------------------------------------------------
--- NOCLIP (FIXED)
-------------------------------------------------
-noclipBtn.MouseButton1Click:Connect(function()
+btn("NOCLIP", 80).MouseButton1Click:Connect(function()
     noclip = not noclip
-    noclipBtn.Text = noclip and "TRAS ON" or "TRAS OFF"
 end)
 
 RunService.Stepped:Connect(function()
     if noclip then
-        for _, v in ipairs(getChar():GetDescendants()) do
+        for _,v in ipairs(char():GetDescendants()) do
             if v:IsA("BasePart") then
                 v.CanCollide = false
             end
@@ -149,84 +88,165 @@ RunService.Stepped:Connect(function()
 end)
 
 ------------------------------------------------
--- AUTO COLLECT (SAFE LOOP)
+-- COMBAT NPC
 ------------------------------------------------
+btn("COMBAT", 115).MouseButton1Click:Connect(function()
+    combatOn = not combatOn
+end)
+
 task.spawn(function()
     while true do
-        task.wait(0.5)
+        task.wait(0.25)
 
-        if autoCollect and not safeMode then
-            for _, v in ipairs(workspace:GetDescendants()) do
-                if v:IsA("ProximityPrompt") then
-                    fireproximityprompt(v)
+        if combatOn then
+            local root = hrp()
+
+            for _,v in ipairs(workspace:GetDescendants()) do
+                if v:IsA("Model") and v ~= char() then
+                    local h = v:FindFirstChildOfClass("Humanoid")
+                    local r = v:FindFirstChild("HumanoidRootPart")
+
+                    if h and r and (root.Position - r.Position).Magnitude < 8 then
+                        if combatMode == "BASICO" then
+                            h:TakeDamage(8)
+                        else
+                            h:TakeDamage(25)
+                        end
+                    end
                 end
             end
         end
     end
 end)
 
-collectBtn.MouseButton1Click:Connect(function()
-    autoCollect = not autoCollect
-    collectBtn.Text = autoCollect and "AUTO COLLECT ON" or "AUTO COLLECT OFF"
+btn("CAMBIAR COMBATE", 150).MouseButton1Click:Connect(function()
+    combatMode = (combatMode == "BASICO") and "MT" or "BASICO"
 end)
 
 ------------------------------------------------
--- INCOME LOOP (FIXED NO BLACK SCREEN)
+-- INGRESO
 ------------------------------------------------
 local function giveMoney(amount)
     local stats = player:FindFirstChild("leaderstats")
     if not stats then return end
 
-    for _, v in ipairs(stats:GetChildren()) do
+    for _,v in pairs(stats:GetChildren()) do
         if v:IsA("IntValue") then
-            local n = v.Name:lower()
-            if n:find("cash") or n:find("money") or n:find("coin") then
-                v.Value += amount
-                return
-            end
+            v.Value += amount
+            return
         end
     end
 end
+
+local mult = {
+    BASICO = 1,
+    PREMIUM = 5,
+    PLUS = 12
+}
+
+btn("INGRESO MODE", 185).MouseButton1Click:Connect(function()
+    if incomeMode == "BASICO" then
+        incomeMode = "PREMIUM"
+    elseif incomeMode == "PREMIUM" then
+        incomeMode = "PLUS"
+    else
+        incomeMode = "BASICO"
+    end
+end)
 
 task.spawn(function()
     while true do
-        task.wait(loopDelay)
-
-        if not safeMode then
-            if incomeMode == "BASIC" then
-                giveMoney(100)
-            else
-                giveMoney(1000)
-            end
-        end
+        task.wait(1)
+        giveMoney(100 * mult[incomeMode])
     end
 end)
 
-incomeBtn.MouseButton1Click:Connect(function()
-    incomeMode = (incomeMode == "BASIC") and "PREMIUM" or "BASIC"
-    incomeBtn.Text = "INCOME: "..incomeMode
+------------------------------------------------
+-- AUTO REGEN + ANTI VOID
+------------------------------------------------
+RunService.RenderStepped:Connect(function()
+    local c = char()
+    local h = c:FindFirstChild("Humanoid")
+    local r = c:FindFirstChild("HumanoidRootPart")
+
+    if h and autoRegen and h.Health < h.MaxHealth then
+        h.Health += 2
+    end
+
+    if r and r.Position.Y > 5 then
+        lastSafe = r.CFrame
+    end
+
+    if antiVoid and r and r.Position.Y < -50 and lastSafe then
+        r.CFrame = lastSafe + Vector3.new(0,5,0)
+    end
 end)
 
 ------------------------------------------------
--- SAFE MODE
+-- AUTO REVIVE
 ------------------------------------------------
-local function enableSafe()
-    noclip = false
-    flying = false
-    autoCollect = false
-
-    local hum = getChar():FindFirstChild("Humanoid")
-    if hum then
-        hum.WalkSpeed = 16
-        hum.JumpPower = 50
+char():WaitForChild("Humanoid").Died:Connect(function()
+    if autoRevive then
+        task.wait(2)
+        player:LoadCharacter()
     end
-end
+end)
 
-safeBtn.MouseButton1Click:Connect(function()
-    safeMode = not safeMode
-    safeBtn.Text = safeMode and "SAFE ON" or "SAFE OFF"
+------------------------------------------------
+-- 📱 MODO MÓVIL (FLOATING ICON)
+------------------------------------------------
+local mobileMode = false
+local hubOpen = true
 
-    if safeMode then
-        enableSafe()
+local icon = Instance.new("ImageButton")
+icon.Size = UDim2.new(0, 45, 0, 45)
+icon.Position = UDim2.new(0, 10, 0.5, -22)
+icon.BackgroundColor3 = Color3.fromRGB(40,40,40)
+icon.Text = ""
+icon.Parent = gui
+icon.Visible = false
+icon.ZIndex = 100
+
+-- activar modo móvil desde botón oculto
+btn("MODO MOVIL", 220).MouseButton1Click:Connect(function()
+    mobileMode = not mobileMode
+
+    icon.Visible = mobileMode
+    frame.Visible = not mobileMode
+end)
+
+-- abrir/cerrar hub
+icon.MouseButton1Click:Connect(function()
+    hubOpen = not hubOpen
+    frame.Visible = hubOpen
+end)
+
+-- drag icono
+local dragging, startPos, startInput
+
+icon.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+
+        dragging = true
+        startInput = input.Position
+        startPos = icon.Position
+    end
+end)
+
+icon.InputEnded:Connect(function(input)
+    dragging = false
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - startInput
+
+        icon.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
     end
 end)
