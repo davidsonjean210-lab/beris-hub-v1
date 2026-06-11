@@ -1,5 +1,5 @@
 -- ====================================================================
--- BERIS HUB V6 - ELITE EDITION (CON FUNCIÓN DE REGENERACIÓN)
+-- BERIS HUB V6 - ULTRA COMPATIBLE EDITION (SOLUCIÓN DE NO EJECUCIÓN)
 -- ====================================================================
 
 local Players = game:GetService("Players")
@@ -8,7 +8,7 @@ local UserInput = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- Variables de estado optimizadas
+-- Variables de estado
 local savedPosition = nil
 local noclipEnabled = false
 local infJumpEnabled = false
@@ -17,7 +17,7 @@ local flySpeed = 50
 local isMinimised = false
 local espEnabled = false
 local aimlockEnabled = false
-local regenEnabled = false -- Estado de la regeneración
+local regenEnabled = false
 
 -- Manejadores de conexiones
 local connections = {
@@ -28,16 +28,30 @@ local connections = {
     regen = nil
 }
 
--- 1. CONSTRUCCIÓN DE LA INTERFAZ ESTILIZADA (NEÓN DARK)
+-- 1. SISTEMA DE INYECCIÓN SEGURA (ANTI-CRASH EXECUTORS)
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "BerisHubV6_Elite_Regen"
+ScreenGui.Name = "BerisHubV6_Safe"
 ScreenGui.ResetOnSpawn = false
 
-local success, coreGui = pcall(function() return game:GetService("CoreGui") end)
-ScreenGui.Parent = (success and coreGui) or LocalPlayer:WaitForChild("PlayerGui")
+-- Intenta usar CoreGui de manera segura, si falla usa PlayerGui automáticamente sin congelarse
+local function safeParent()
+    local success, coreGui = pcall(function() return game:GetService("CoreGui") end)
+    if success and coreGui then
+        ScreenGui.Parent = coreGui
+    else
+        local playerGui = LocalPlayer:WaitForChild("PlayerGui", 5)
+        if playerGui then
+            ScreenGui.Parent = playerGui
+        else
+            -- Última alternativa en caso de bugs extremos en la carga del jugador
+            ScreenGui.Parent = game:GetService("CoreGui")
+        end
+    end
+end
+safeParent()
 
 local MainFrame = Instance.new("Frame")
-local fullSize = UDim2.new(0, 260, 0, 420) -- Se aumentó un poco la altura para el nuevo botón
+local fullSize = UDim2.new(0, 260, 0, 420)
 local miniSize = UDim2.new(0, 260, 0, 42)
 
 MainFrame.Name = "MainFrame"
@@ -107,7 +121,7 @@ ScrollFrame.Size = UDim2.new(1, 0, 1, -48)
 ScrollFrame.Position = UDim2.new(0, 0, 0, 48)
 ScrollFrame.BackgroundTransparency = 1
 ScrollFrame.BorderSizePixel = 0
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 450) -- Ajustado para el nuevo scroll
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 450)
 ScrollFrame.ScrollBarThickness = 4
 ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 229, 255)
 ScrollFrame.Parent = MainFrame
@@ -163,13 +177,13 @@ local BtnFly    = createButton("Vuelo (Fly): OFF", Color3.fromRGB(15, 48, 63))
 local BtnEsp    = createButton("Wallhack / ESP Box: OFF", Color3.fromRGB(48, 20, 56))
 local BtnAim    = createButton("Aimlock (Mantener E): OFF", Color3.fromRGB(61, 41, 15))
 local BtnGod    = createButton("God Mode (Visual)", Color3.fromRGB(20, 50, 50))
-local BtnRegen  = createButton("Auto Regenerar Vida: OFF", Color3.fromRGB(40, 60, 20)) -- Nuevo botón
+local BtnRegen  = createButton("Auto Regenerar Vida: OFF", Color3.fromRGB(40, 60, 20))
 
 local InputFly   = createTextBox("Fijar Velocidad de Vuelo (Ej: 70)")
 local InputMoney = createTextBox("Modificar Money / Cash Visual", Color3.fromRGB(33, 30, 16))
 
 -- ====================================================================
--- SISTEMA DE AUTO-REGENERACIÓN DE VIDA (REGEN)
+-- SISTEMA DE AUTO-REGENERACIÓN
 -- ====================================================================
 BtnRegen.MouseButton1Click:Connect(function()
     regenEnabled = not regenEnabled
@@ -178,12 +192,13 @@ BtnRegen.MouseButton1Click:Connect(function()
     
     if regenEnabled then
         connections.regen = RunService.Heartbeat:Connect(function()
-            local char = LocalPlayer.Character
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
-            if hum and hum.Health > 0 and hum.Health < hum.MaxHealth then
-                -- Si la vida baja, la fuerza instantáneamente al máximo compatible local/servidor parcial
-                hum.Health = hum.MaxHealth
-            end
+            pcall(function()
+                local char = LocalPlayer.Character
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                if hum and hum.Health > 0 and hum.Health < hum.MaxHealth then
+                    hum.Health = hum.MaxHealth
+                end
+            end)
         end)
     else
         if connections.regen then connections.regen:Disconnect() connections.regen = nil end
@@ -191,43 +206,47 @@ BtnRegen.MouseButton1Click:Connect(function()
 end)
 
 -- ====================================================================
--- ESP AVANZADO DINÁMICO (ANTI-FALLOS)
+-- ESP AVANZADO DINÁMICO (PROTEGIDO)
 -- ====================================================================
 local function cleanESP()
     for _, plr in pairs(Players:GetPlayers()) do
-        if plr.Character then
-            local oldEsp = plr.Character:FindFirstChild("BerisBoxESP")
-            if oldEsp then oldEsp:Destroy() end
-        end
+        pcall(function()
+            if plr.Character then
+                local oldEsp = plr.Character:FindFirstChild("BerisBoxESP")
+                if oldEsp then oldEsp:Destroy() end
+            end
+        end)
     end
 end
 
 local function applyInmuneESP()
     for _, plr in pairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-            local char = plr.Character
-            local hrp = char.HumanoidRootPart
-            local folder = char:FindFirstChild("BerisBoxESP")
-            
-            if not folder then
-                folder = Instance.new("Folder")
-                folder.Name = "BerisBoxESP"
-                folder.Parent = char
+        pcall(function()
+            if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local char = plr.Character
+                local hrp = char.HumanoidRootPart
+                local folder = char:FindFirstChild("BerisBoxESP")
                 
-                local box = Instance.new("BoxHandleAdornment")
-                box.Name = "Box"
-                box.Color3 = Color3.fromRGB(0, 229, 255)
-                box.Transparency = 0.65
-                box.AlwaysOnTop = true
-                box.ZIndex = 6
-                box.Adornee = hrp
-                box.Parent = folder
+                if not folder then
+                    folder = Instance.new("Folder")
+                    folder.Name = "BerisBoxESP"
+                    folder.Parent = char
+                    
+                    local box = Instance.new("BoxHandleAdornment")
+                    box.Name = "Box"
+                    box.Color3 = Color3.fromRGB(0, 229, 255)
+                    box.Transparency = 0.65
+                    box.AlwaysOnTop = true
+                    box.ZIndex = 6
+                    box.Adornee = hrp
+                    box.Parent = folder
+                end
+                
+                if folder:FindFirstChild("Box") then
+                    folder.Box.Size = char:GetExtentsSize() + Vector3.new(0.1, 0.1, 0.1)
+                end
             end
-            
-            if folder:FindFirstChild("Box") then
-                folder.Box.Size = char:GetExtentsSize() + Vector3.new(0.1, 0.1, 0.1)
-            end
-        end
+        end)
     end
 end
 
@@ -253,19 +272,21 @@ local function getClosestPlayerToCursor()
     local mousePos = UserInput:GetMouseLocation()
 
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid and humanoid.Health > 0 then
-                local screenPos, onScreen = Camera:WorldToViewportPoint(player.Character.Head.Position)
-                if onScreen then
-                    local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                    if distance < shortestDistance then
-                        closestPlayer = player
-                        shortestDistance = distance
+        pcall(function()
+            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+                local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                if humanoid and humanoid.Health > 0 then
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(player.Character.Head.Position)
+                    if onScreen then
+                        local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                        if distance < shortestDistance then
+                            closestPlayer = player
+                            shortestDistance = distance
+                        end
                     end
                 end
             end
-        end
+        end)
     end
     return closestPlayer
 end
@@ -290,7 +311,7 @@ BtnAim.MouseButton1Click:Connect(function()
 end)
 
 -- ====================================================================
--- MOVILIDAD Y CONFIGURACIONES
+-- MOVILIDAD Y CONTROLES ADICIONALES
 -- ====================================================================
 
 BtnFly.MouseButton1Click:Connect(function()
@@ -300,21 +321,23 @@ BtnFly.MouseButton1Click:Connect(function()
     
     if flyEnabled then
         connections.fly = RunService.RenderStepped:Connect(function(deltaTime)
-            if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-            local hrp = LocalPlayer.Character.HumanoidRootPart
-            hrp.AssemblyLinearVelocity = Vector3.zero
-            
-            local moveDirection = Vector3.zero
-            if UserInput:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + Camera.CFrame.LookVector end
-            if UserInput:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - Camera.CFrame.LookVector end
-            if UserInput:IsKeyDown(Enum.KeyCode.A) then moveDirection = moveDirection - Camera.CFrame.RightVector end
-            if UserInput:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + Camera.CFrame.RightVector end
-            if UserInput:IsKeyDown(Enum.KeyCode.Space) then moveDirection = moveDirection + Vector3.new(0, 1, 0) end
-            if UserInput:IsKeyDown(Enum.KeyCode.LeftShift) then moveDirection = moveDirection - Vector3.new(0, 1, 0) end
-            
-            if moveDirection.Magnitude > 0 then
-                hrp.CFrame = hrp.CFrame + (moveDirection.Unit * flySpeed * deltaTime)
-            end
+            pcall(function()
+                if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+                local hrp = LocalPlayer.Character.HumanoidRootPart
+                hrp.AssemblyLinearVelocity = Vector3.zero
+                
+                local moveDirection = Vector3.zero
+                if UserInput:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + Camera.CFrame.LookVector end
+                if UserInput:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - Camera.CFrame.LookVector end
+                if UserInput:IsKeyDown(Enum.KeyCode.A) then moveDirection = moveDirection - Camera.CFrame.RightVector end
+                if UserInput:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + Camera.CFrame.RightVector end
+                if UserInput:IsKeyDown(Enum.KeyCode.Space) then moveDirection = moveDirection + Vector3.new(0, 1, 0) end
+                if UserInput:IsKeyDown(Enum.KeyCode.LeftShift) then moveDirection = moveDirection - Vector3.new(0, 1, 0) end
+                
+                if moveDirection.Magnitude > 0 then
+                    hrp.CFrame = hrp.CFrame + (moveDirection.Unit * flySpeed * deltaTime)
+                end
+            end)
         end)
     else
         if connections.fly then connections.fly:Disconnect() connections.fly = nil end
@@ -329,8 +352,10 @@ BtnInfJ.MouseButton1Click:Connect(function()
     if infJumpEnabled then
         if not connections.infJump then
             connections.infJump = UserInput.JumpRequest:Connect(function()
-                local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+                pcall(function()
+                    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                    if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+                end)
             end)
         end
     else
@@ -345,11 +370,13 @@ BtnTras.MouseButton1Click:Connect(function()
 end)
 
 RunService.Stepped:Connect(function()
-    if noclipEnabled and LocalPlayer.Character then
-        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then part.CanCollide = false end
+    pcall(function()
+        if noclipEnabled and LocalPlayer.Character then
+            for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                if part:IsA("BasePart") and part.CanCollide then part.CanCollide = false end
+            end
         end
-    end
+    end)
 end)
 
 BtnSaveTp.MouseButton1Click:Connect(function()
@@ -402,7 +429,7 @@ InputMoney.FocusLost:Connect(function(ep)
     end
 end)
 
--- Controles de Interfaz
+-- Controles de Interfaz básicos
 BtnMinimize.MouseButton1Click:Connect(function()
     isMinimised = not isMinimised
     MainFrame.Size = isMinimised and miniSize or fullSize
