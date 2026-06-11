@@ -677,30 +677,3 @@ end)
 UserInput.InputBegan:Connect(function(input, gP)
     if not gP and input.KeyCode == Enum.KeyCode.P then MainFrame.Visible = not MainFrame.Visible end
 end)
-
--- --- LÓGICA DE RECOLECCIÓN AUTOMÁTICA ---
-local autoCollectEnabled = false
-local BtnCollect, LedCollect = createMenuOption(serverPage, "💰 Auto Recolectar Dinero")
-
-task.spawn(function()
-    while true do
-        if autoCollectEnabled then
-            pcall(function()
-                for _, obj in pairs(workspace:GetDescendants()) do
-                    -- Detecta nombres comunes de objetos de dinero
-                    if obj:IsA("BasePart") and (obj.Name == "Money" or obj.Name == "Cash" or obj.Name == "Coin" or obj.Name:find("Coin")) then
-                        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                            obj.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
-                        end
-                    end
-                end
-            end)
-        end
-        task.wait(0.5) -- Frecuencia optimizada para no causar lag
-    end
-end)
-
-BtnCollect.MouseButton1Click:Connect(function()
-    autoCollectEnabled = not autoCollectEnabled
-    updateLed(LedCollect, autoCollectEnabled)
-end)
