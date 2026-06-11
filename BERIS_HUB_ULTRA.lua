@@ -1,28 +1,18 @@
 -- ====================================================================
--- BERIS HUB V6 - COMPATIBILITY & SAFE RUN EDITION (2026)
--- CORREGIDO: FILTROS PCALL COMPLETOS PARA EVITAR CRASHES EN INYECTORES
+-- BERIS HUB V6 - GOD TIER DEVELOPMENT EDITION (2026)
+-- 10 NUEVAS OPCIONES INTEGRADAS - TOTAL 21 MODULOS
 -- ====================================================================
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInput = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
+local VirtualUser = game:GetService("VirtualUser")
+local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- Forzar espera segura del jugador
-if not LocalPlayer then
-    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
-    LocalPlayer = Players.LocalPlayer
-end
-
--- Intento seguro de obtener VirtualUser para clicks automáticos
-local VirtualUser = nil
-pcall(function()
-    VirtualUser = game:GetService("VirtualUser")
-end)
-
--- Variables de estado estables
+-- Variables de optimización y estados estables
 local savedPosition = nil
 local noclipEnabled = false
 local infJumpEnabled = false
@@ -32,48 +22,43 @@ local walkSpeedEnabled = false
 local customWalkSpeed = 16
 local isMinimised = false
 local espEnabled = false
-local chamsEnabled = false 
+local chamsEnabled = false -- Nuevo
 local aimlockEnabled = false
 local fastAimEnabled = false
 local autoFamaEnabled = false
-local killAuraEnabled = false 
-local autoParryEnabled = false 
-local instantRespawnEnabled = false 
-local fpsBoostEnabled = false 
-local hitboxExpanded = false 
-local autoCollectEnabled = false
+local killAuraEnabled = false -- Nuevo
+local autoParryEnabled = false -- Nuevo
+local instantRespawnEnabled = false -- Nuevo
+local fpsBoostEnabled = false -- Nuevo
+local hitboxExpanded = false -- Nuevo
 
 local MAX_REAL_DISTANCE = 300 
-local AURA_RANGE = 25 
+local AURA_RANGE = 25 -- Rango del Kill Aura
 local PREDICTION_INTENSITY = 0.14
 local originalGravity = workspace.Gravity
 local connections = {}
 
--- 1. SISTEMA DE INYECCIÓN INTEGRAL COMPATIBLE
+-- 1. CONTROLADOR DE INTERFAZ CYBERPUNK V3 (TAMAÑO AMPLIADO)
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "BerisHubV6_SafeRun"
+ScreenGui.Name = "BerisHubV6_GodTier"
 ScreenGui.ResetOnSpawn = false
 
-local function safeInject()
+local function injectGui()
     local success, coreGui = pcall(function() return game:GetService("CoreGui") end)
-    if success and coreGui then
-        pcall(function() ScreenGui.Parent = coreGui end)
-    else
-        local pGui = LocalPlayer:WaitForChild("PlayerGui", 5)
-        if pGui then ScreenGui.Parent = pGui else ScreenGui.Parent = game end
+    if success and coreGui then ScreenGui.Parent = coreGui else
+        ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui", 7) or game
     end
 end
-safeInject()
+injectGui()
 
--- INTERFAZ PRINCIPAL
 local MainFrame = Instance.new("Frame")
-local fullSize = UDim2.new(0, 290, 0, 565) 
+local fullSize = UDim2.new(0, 290, 0, 560) -- Dimensiones expandidas para albergar los nuevos módulos
 local miniSize = UDim2.new(0, 290, 0, 45)
 
 MainFrame.Name = "MainFrame"
 MainFrame.Size = fullSize
 MainFrame.Position = UDim2.new(0.05, 0, 0.15, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(12, 13, 19)
+MainFrame.BackgroundColor3 = Color3.fromRGB(11, 12, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
@@ -83,16 +68,18 @@ MainFrame.Parent = ScreenGui
 local UIGradient = Instance.new("UIGradient")
 UIGradient.Color = ColorSequence.new{
     ColorSequenceKeypoint.new(0, Color3.fromRGB(8, 9, 13)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(22, 24, 34))
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 22, 32))
 }
 UIGradient.Rotation = 60
 UIGradient.Parent = MainFrame
 
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 14)
+MainCorner.Parent = MainFrame
 
 local NeonLine = Instance.new("Frame")
 NeonLine.Size = UDim2.new(1, 0, 0, 3)
-NeonLine.BackgroundColor3 = Color3.fromRGB(0, 255, 170) 
+NeonLine.BackgroundColor3 = Color3.fromRGB(255, 0, 128) -- Tono Neón Magenta Eléctrico
 NeonLine.BorderSizePixel = 0
 NeonLine.Parent = MainFrame
 
@@ -103,7 +90,7 @@ Header.Parent = MainFrame
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 1, 0)
-Title.Text = "   BERIS HUB V6 • <font color='#00FFAA'>SAFE RUN</font>"
+Title.Text = "   BERIS HUB V6 • <font color='#FF0080'>GOD TIER</font>"
 Title.RichText = true
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 13
@@ -128,10 +115,10 @@ local BtnMinimize = Instance.new("TextButton")
 BtnMinimize.Size = UDim2.new(0, 24, 0, 24)
 BtnMinimize.Position = UDim2.new(1, -64, 0, 10)
 BtnMinimize.Text = "—"
-BtnMinimize.TextColor3 = Color3.fromRGB(0, 255, 170)
+BtnMinimize.TextColor3 = Color3.fromRGB(255, 0, 128)
 BtnMinimize.TextSize = 11
 BtnMinimize.Font = Enum.Font.GothamBold
-BtnMinimize.BackgroundColor3 = Color3.fromRGB(18, 36, 28)
+BtnMinimize.BackgroundColor3 = Color3.fromRGB(36, 18, 30)
 BtnMinimize.BorderSizePixel = 0
 BtnMinimize.Parent = Header
 Instance.new("UICorner", BtnMinimize).CornerRadius = UDim.new(0, 6)
@@ -141,9 +128,9 @@ ScrollFrame.Size = UDim2.new(1, 0, 1, -50)
 ScrollFrame.Position = UDim2.new(0, 0, 0, 50)
 ScrollFrame.BackgroundTransparency = 1
 ScrollFrame.BorderSizePixel = 0
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 1010) 
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 950) -- Canvas ampliado para scrolling masivo
 ScrollFrame.ScrollBarThickness = 3
-ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 255, 170)
+ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 0, 128)
 ScrollFrame.Parent = MainFrame
 
 local UIListLayout = Instance.new("UIListLayout")
@@ -152,6 +139,7 @@ UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Padding = UDim.new(0, 6)
 UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
+-- FACTORÍA PREMIUM GENERADORA DE MÓDULOS
 local function createPremiumButton(text)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(0, 266, 0, 34)
@@ -188,11 +176,9 @@ local function createPremiumButton(text)
 end
 
 local function updateLed(led, state)
-    pcall(function()
-        TweenService:Create(led, TweenInfo.new(0.2), {
-            BackgroundColor3 = state and Color3.fromRGB(0, 255, 150) or Color3.fromRGB(255, 65, 65)
-        }):Play()
-    end)
+    TweenService:Create(led, TweenInfo.new(0.2), {
+        BackgroundColor3 = state and Color3.fromRGB(0, 255, 150) or Color3.fromRGB(255, 65, 65)
+    }):Play()
 end
 
 local function createPremiumTextBox(placeholder)
@@ -217,18 +203,25 @@ local function createPremiumTextBox(placeholder)
     return textBox
 end
 
--- ASIGNACIÓN DE BOTONES COMPATIBLES
-local BtnCollect, LedCollect = createPremiumButton("📦 Auto Recolección Magnética + Prompts")
+-- ====================================================================
+-- CREACIÓN Y COMPILACIÓN DE COMPONENTES INTERNOS (21 ELEMENTOS)
+-- ====================================================================
+
+-- SECCIÓN COMBATE AUTOMÁTICO
 local BtnKillAura, LedAura   = createPremiumButton("💥 Habilitar Kill Aura (Radio 25w)")
 local BtnParry, LedParry     = createPremiumButton("🛡️ Auto Parry / Auto Block (Beta)")
 local BtnFastAim, LedFast   = createPremiumButton("🎯 Aim Predictivo + Raycast (Auto)")
 local BtnAim, LedAim       = createPremiumButton("👁️ Aimlock con Fijación [Tecla E]")
 local BtnHitbox, LedHitbox   = createPremiumButton("💀 Hitbox Expander (Cabeza 5x)")
 local BtnAutoFama, LedFama   = createPremiumButton("⭐ Intelli-Farm Automático Activo")
+
+-- SECCIÓN VISUALES Y ESP
 local BtnChams, LedChams     = createPremiumButton("🌈 Renderizado Chams (Silueta Pared)")
 local BtnEsp, LedEsp       = createPremiumButton("📦 Visualizador Wallhack / ESP Box")
 local BtnCam, LedCam         = createPremiumButton("🎥 No Clip de Cámara (Freecam)")
 local BtnBoost, LedBoost     = createPremiumButton("⚡ Eliminar Texturas (FPS Boost)")
+
+-- SECCIÓN MOVIMIENTO Y MAPA
 local BtnFly, LedFly       = createPremiumButton("✈️ Vuelo Inteligente Integrado")
 local BtnSpeed, LedSpeed   = createPremiumButton("🏃 Estabilizador de Caminado")
 local BtnTras, LedTras     = createPremiumButton("🧱 Bypass de Colisión (Noclip)")
@@ -238,6 +231,7 @@ local BtnSaveTp, LedSTp    = createPremiumButton("💾 Capturar Coordenadas Actu
 local BtnTp, LedTp         = createPremiumButton("🚀 Forzar Teletransporte Guardado")
 local BtnGod, LedGod       = createPremiumButton("👑 Modo Dios (Local/Visual)")
 
+-- SECCIÓN INPUT TEXT BOXES
 local InputTpTo  = createPremiumTextBox(" 👤 Teletransporte a Jugador (Nombre Corto)")
 local InputSpeed = createPremiumTextBox(" 🏃 Velocidad de Caminado (Defecto: 16)")
 local InputFly   = createPremiumTextBox(" ✈️ Velocidad de Vuelo Pro (Defecto: 50)")
@@ -245,75 +239,30 @@ local InputGrav  = createPremiumTextBox(" 🪐 Modificar Gravedad (Defecto: 196.
 local InputFov   = createPremiumTextBox(" 📐 Fijar FOV de Cámara (Defecto: 70)")
 local InputMoney = createPremiumTextBox(" 💵 Hackear Dinero / Coins (Visual)")
 
--- Anti-AFK Seguro
+-- Anti-AFK integrado de fábrica
 pcall(function()
     LocalPlayer.Idled:Connect(function()
-        if VirtualUser then
-            VirtualUser:CaptureController()
-            VirtualUser:ClickButton2(Vector2.new(0, 0))
-        end
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new(0, 0))
     end)
 end)
 
--- LOGICA DE COMPATIBILIDAD COLECTORA
-BtnCollect.MouseButton1Click:Connect(function()
-    autoCollectEnabled = not autoCollectEnabled
-    updateLed(LedCollect, autoCollectEnabled)
-    if autoCollectEnabled then
-        task.spawn(function()
-            while autoCollectEnabled do
-                pcall(function()
-                    local myChar = LocalPlayer.Character
-                    local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
-                    if not myHrp then return end
-                    
-                    for _, prompt in pairs(workspace:GetDescendants()) do
-                        if prompt:IsA("ProximityPrompt") and autoCollectEnabled then
-                            local parentPart = prompt.Parent
-                            if parentPart and parentPart:IsA("BasePart") then
-                                if (myHrp.Position - parentPart.Position).Magnitude <= 35 then
-                                    prompt:InputHoldBegin()
-                                    task.wait(0.02)
-                                    prompt:InputHoldEnd()
-                                end
-                            end
-                        end
-                    end
-                    
-                    for _, object in pairs(workspace:GetDescendants()) do
-                        if (object:IsA("BasePart") or object:IsA("MeshPart")) and autoCollectEnabled then
-                            local name = object.Name:lower()
-                            if name:find("coin") or name:find("gem") or name:find("chest") or name:find("token") or name:find("fruit") or name:find("drop") then
-                                if (myHrp.Position - object.Position).Magnitude <= MAX_REAL_DISTANCE then
-                                    object.CFrame = myHrp.CFrame
-                                    object.CanCollide = false
-                                end
-                            end
-                        end
-                    end
-                end)
-                task.wait(0.5)
-            end
-        end)
-    end
-end)
-
--- FUNCIONES DE BUSQUEDA SEGURA
+-- ====================================================================
+-- FUNCIONES MATEMÁTICAS Y ALGORITMOS DE BÚSQUEDA AVANZADOS
+-- ====================================================================
 local function isTargetVisible(targetCharacter)
-    return pcall(function()
-        local head = targetCharacter:FindFirstChild("Head")
-        local myChar = LocalPlayer.Character
-        local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
-        if head and myHrp then
-            local raycastParams = RaycastParams.new()
-            raycastParams.FilterFolder = {myChar, targetCharacter}
-            raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-            local direction = (head.Position - myHrp.Position)
-            local rayResult = workspace:Raycast(myHrp.Position, direction, raycastParams)
-            if not rayResult then return true end
-        end
-        return false
-    end) and true or false
+    local head = targetCharacter:FindFirstChild("Head")
+    local myChar = LocalPlayer.Character
+    local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    if head and myHrp then
+        local raycastParams = RaycastParams.new()
+        raycastParams.FilterFolder = {myChar, targetCharacter}
+        raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+        local direction = (head.Position - myHrp.Position)
+        local rayResult = workspace:Raycast(myHrp.Position, direction, raycastParams)
+        if not rayResult then return true end
+    end
+    return false
 end
 
 local function getClosestPlayer()
@@ -338,7 +287,11 @@ local function getClosestPlayer()
     return closestPlayer
 end
 
--- EJECUCION DE PROCESOS ENCAPSULADOS CON PCALL EN CASO DE ERROR DE CONTEXTO
+-- ====================================================================
+-- EJECUCIÓN LÓGICA DE LAS 10 NUEVAS OPCIONES AVANZADAS
+-- ====================================================================
+
+-- 1. KILL AURA
 BtnKillAura.MouseButton1Click:Connect(function()
     killAuraEnabled = not killAuraEnabled
     updateLed(LedAura, killAuraEnabled)
@@ -352,13 +305,212 @@ BtnKillAura.MouseButton1Click:Connect(function()
                     if myHrp and tool then
                         for _, player in pairs(Players:GetPlayers()) do
                             if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                                local distance = (myHrp.Position - player.Character.HumanoidRootPart.Position).Magnitude
-                                if distance <= AURA_RANGE then tool:Activate() end
+                                local targetHrp = player.Character.HumanoidRootPart
+                                local distance = (myHrp.Position - targetHrp.Position).Magnitude
+                                if distance <= AURA_RANGE then
+                                    tool:Activate()
+                                end
                             end
                         end
                     end
                 end)
                 task.wait(0.1)
+            end
+        end)
+    end
+end)
+
+-- 2. AUTO PARRY
+BtnParry.MouseButton1Click:Connect(function()
+    autoParryEnabled = not autoParryEnabled
+    updateLed(LedParry, autoParryEnabled)
+    if autoParryEnabled then
+        connections.autoParry = RunService.Heartbeat:Connect(function()
+            pcall(function()
+                local myChar = LocalPlayer.Character
+                if not myChar then return end
+                for _, player in pairs(Players:GetPlayers()) do
+                    if player ~= LocalPlayer and player.Character and player.Character:FindFirstChildOfClass("Tool") then
+                        local enemyTool = player.Character:FindFirstChildOfClass("Tool")
+                        local myHrp = myChar:FindFirstChild("HumanoidRootPart")
+                        local enemyHrp = player.Character:FindFirstChild("HumanoidRootPart")
+                        if myHrp and enemyHrp and (myHrp.Position - enemyHrp.Position).Magnitude < 15 then
+                            -- Simula activación de escudo o defensa del juego
+                            local blockTool = myChar:FindFirstChild("Block") or myChar:FindFirstChild("Shield") or myChar:FindFirstChildOfClass("Tool")
+                            if blockTool then blockTool:Activate() end
+                        end
+                    end
+                end
+            end)
+        end)
+    else
+        if connections.autoParry then connections.autoParry:Disconnect() connections.autoParry = nil end
+    end
+end)
+
+-- 3. TP TO PLAYER (TEXT INPUT)
+InputTpTo.FocusLost:Connect(function(enterPressed)
+    if enterPressed and InputTpTo.Text ~= "" then
+        pcall(function()
+            local targetName = InputTpTo.Text:lower()
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Name:lower():sub(1, #targetName) == targetName then
+                    local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    local targetHrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                    if myHrp and targetHrp then
+                        myHrp.CFrame = targetHrp.CFrame + Vector3.new(0, 3, 0)
+                    end
+                    break
+                end
+            end
+        end)
+    end
+end)
+
+-- 4. HITBOX EXPANDER
+BtnHitbox.MouseButton1Click:Connect(function()
+    hitboxExpanded = not hitboxExpanded
+    updateLed(LedHitbox, hitboxExpanded)
+    connections.hitbox = RunService.Heartbeat:Connect(function()
+        if hitboxExpanded then
+            for _, player in pairs(Players:GetPlayers()) do
+                pcall(function()
+                    if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+                        local head = player.Character.Head
+                        head.Size = Vector3.new(5, 5, 5)
+                        head.Transparency = 0.5
+                        head.CanCollide = false
+                    end
+                end)
+            end
+        else
+            if connections.hitbox then connections.hitbox:Disconnect() connections.hitbox = nil end
+            for _, player in pairs(Players:GetPlayers()) do
+                pcall(function()
+                    if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+                        player.Character.Head.Size = Vector3.new(2, 1, 1)
+                        player.Character.Head.Transparency = 0
+                        player.Character.Head.CanCollide = true
+                    end
+                end)
+            end
+        end
+    end)
+end)
+
+-- 5. CHAMS (RENDERIZADO TOTAL)
+local function cleanChams()
+    for _, player in pairs(Players:GetPlayers()) do
+        pcall(function()
+            if player.Character and player.Character:FindFirstChild("BerisChams") then
+                player.Character.BerisChams:Destroy()
+            end
+        end)
+    end
+end
+
+BtnChams.MouseButton1Click:Connect(function()
+    chamsEnabled = not chamsEnabled
+    updateLed(LedChams, chamsEnabled)
+    if chamsEnabled then
+        connections.chams = RunService.Heartbeat:Connect(function()
+            for _, player in pairs(Players:GetPlayers()) do
+                pcall(function()
+                    if player ~= LocalPlayer and player.Character then
+                        if not player.Character:FindFirstChild("BerisChams") then
+                            local highlight = Instance.new("Highlight")
+                            highlight.Name = "BerisChams"
+                            highlight.FillColor = Color3.fromRGB(255, 0, 128)
+                            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                            highlight.FillTransparency = 0.4
+                            highlight.Parent = player.Character
+                        end
+                    end
+                end)
+            end
+        end)
+    else
+        if connections.chams then connections.chams:Disconnect() connections.chams = nil end
+        cleanChams()
+    end
+end)
+
+-- 6. NO CLIP DE CÁMARA (FREECAM)
+BtnCam.MouseButton1Click:Connect(function()
+    noclipEnabled = not noclipEnabled
+    updateLed(LedCam, noclipEnabled)
+    -- Devuelve control o quita límites de renderizado por colisión
+    Camera.ClipToScreenEdge = not noclipEnabled
+end)
+
+-- 7. ELIMINAR TEXTURAS (FPS BOOST)
+BtnBoost.MouseButton1Click:Connect(function()
+    fpsBoostEnabled = not fpsBoostEnabled
+    updateLed(LedBoost, fpsBoostEnabled)
+    if fpsBoostEnabled then
+        pcall(function()
+            for _, asset in pairs(workspace:GetDescendants()) do
+                if asset:IsA("Texture") or asset:IsA("Decal") then
+                    asset.Texture = ""
+                elseif asset:IsA("BasePart") then
+                    asset.Material = Enum.Material.SmoothPlastic
+                end
+            end
+        end)
+    end
+end)
+
+-- 8. AUTO-RESPAWN
+BtnRespawn.MouseButton1Click:Connect(function()
+    instantRespawnEnabled = not instantRespawnEnabled
+    updateLed(LedResp, instantRespawnEnabled)
+    if instantRespawnEnabled then
+        connections.respawn = LocalPlayer.CharacterRemoving:Connect(function()
+            task.spawn(function()
+                task.wait(0.1)
+                LocalPlayer:LoadCharacter()
+            end)
+        end)
+    else
+        if connections.respawn then connections.respawn:Disconnect() connections.respawn = nil end
+    end
+end)
+
+-- 9. GRAVEDAD PERSONALIZABLE
+InputGrav.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        local targetGrav = tonumber(InputGrav.Text)
+        if targetGrav then workspace.Gravity = targetGrav else workspace.Gravity = originalGravity end
+    end
+end)
+
+-- 10. CONFIGURACIÓN DE FOV DE CÁMARA
+InputFov.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        local targetFov = tonumber(InputFov.Text)
+        if targetFov and targetFov >= 10 and targetFov <= 120 then
+            Camera.FieldOfView = targetFov
+        end
+    end
+end)
+
+-- ====================================================================
+-- CONTROL DE PROCESOS CLÁSICOS OPTIMIZADOS
+-- ====================================================================
+
+BtnAutoFama.MouseButton1Click:Connect(function()
+    autoFamaEnabled = not autoFamaEnabled
+    updateLed(LedFama, autoFamaEnabled)
+    if autoFamaEnabled then
+        task.spawn(function()
+            while autoFamaEnabled do
+                pcall(function()
+                    local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                    if tool then tool:Activate() end
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton1(Vector2.new(0, 0))
+                end)
+                task.wait(0.25)
             end
         end)
     end
@@ -461,99 +613,47 @@ BtnInfJ.MouseButton1Click:Connect(function()
     end
 end)
 
--- ENTRADAS ADICIONALES PROTEGIDAS
 BtnSaveTp.MouseButton1Click:Connect(function()
-    pcall(function()
-        local char = LocalPlayer.Character
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            savedPosition = char.HumanoidRootPart.CFrame
-            updateLed(LedSTp, true) task.wait(0.3) updateLed(LedSTp, false)
-        end
-    end)
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        savedPosition = char.HumanoidRootPart.CFrame
+        updateLed(LedSTp, true) task.wait(0.4) updateLed(LedSTp, false)
+    end
 end)
 
 BtnTp.MouseButton1Click:Connect(function()
-    pcall(function()
-        local char = LocalPlayer.Character
-        if char and char:FindFirstChild("HumanoidRootPart") and savedPosition then
-            char.HumanoidRootPart.CFrame = savedPosition
-            updateLed(LedTp, true) task.wait(0.3) updateLed(LedTp, false)
-        end
-    end)
-end)
-
--- Conexiones de botones secundarios
-BtnParry.MouseButton1Click:Connect(function() autoParryEnabled = not autoParryEnabled updateLed(LedParry, autoParryEnabled) end)
-BtnHitbox.MouseButton1Click:Connect(function() hitboxExpanded = not hitboxExpanded updateLed(LedHitbox, hitboxExpanded) end)
-BtnChams.MouseButton1Click:Connect(function() chamsEnabled = not chamsEnabled updateLed(LedChams, chamsEnabled) end)
-BtnEsp.MouseButton1Click:Connect(function() espEnabled = not espEnabled updateLed(LedEsp, espEnabled) end)
-BtnCam.MouseButton1Click:Connect(function() noclipEnabled = not noclipEnabled updateLed(LedCam, noclipEnabled) end)
-BtnBoost.MouseButton1Click:Connect(function() fpsBoostEnabled = not fpsBoostEnabled updateLed(LedBoost, fpsBoostEnabled) end)
-BtnRespawn.MouseButton1Click:Connect(function() instantRespawnEnabled = not instantRespawnEnabled updateLed(LedResp, instantRespawnEnabled) end)
-
-BtnAutoFama.MouseButton1Click:Connect(function()
-    autoFamaEnabled = not autoFamaEnabled
-    updateLed(LedFama, autoFamaEnabled)
-    if autoFamaEnabled then
-        task.spawn(function()
-            while autoFamaEnabled do
-                pcall(function()
-                    local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                    if tool then tool:Activate() end
-                    if VirtualUser then
-                        VirtualUser:CaptureController()
-                        VirtualUser:ClickButton1(Vector2.new(0,0))
-                    end
-                end)
-                task.wait(0.3)
-            end
-        end)
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") and savedPosition then
+        char.HumanoidRootPart.CFrame = savedPosition
+        updateLed(LedTp, true) task.wait(0.4) updateLed(LedTp, false)
     end
 end)
 
 BtnGod.MouseButton1Click:Connect(function()
-    pcall(function()
-        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum.MaxHealth = math.huge hum.Health = math.huge updateLed(LedGod, true) task.wait(0.3) updateLed(LedGod, false) end
-    end)
-end)
-
-InputTpTo.FocusLost:Connect(function(ep)
-    if ep and InputTpTo.Text ~= "" then
-        pcall(function()
-            local name = InputTpTo.Text:lower()
-            for _, p in pairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer and p.Name:lower():sub(1,#name) == name and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                    LocalPlayer.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame
-                    break
-                end
-            end
-        end)
+    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.MaxHealth = math.huge hum.Health = math.huge
+        updateLed(LedGod, true) task.wait(0.4) updateLed(LedGod, false)
     end
 end)
 
-InputGrav.FocusLost:Connect(function(ep) if ep then pcall(function() workspace.Gravity = tonumber(InputGrav.Text) or originalGravity end) end end)
-InputFov.FocusLost:Connect(function(ep) if ep then pcall(function() local v = tonumber(InputFov.Text) if v then Camera.FieldOfView = v end end) end end)
-
--- CIERRE Y MINIMIZACIÓN
+-- SISTEMA DINÁMICO DE MINIMIZACIÓN Y CIERRE (SMOOTH TWEEN)
 BtnMinimize.MouseButton1Click:Connect(function()
     isMinimised = not isMinimised
     local targetSize = isMinimised and miniSize or fullSize
     ScrollFrame.Visible = not isMinimised
     BtnMinimize.Text = isMinimised and "+" or "—"
-    pcall(function() TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play() end)
+    TweenService:Create(MainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
 end)
 
 BtnClose.MouseButton1Click:Connect(function()
-    autoCollectEnabled = false
     autoFamaEnabled = false
     killAuraEnabled = false
-    for _, conn in pairs(connections) do if conn then pcall(function() conn:Disconnect() end) end end
-    pcall(function()
-        TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(0, 290, 0, 0)}):Play()
-        task.wait(0.2)
-        ScreenGui:Destroy()
-    end)
+    for _, conn in pairs(connections) do if conn then conn:Disconnect() end end
+    cleanChams()
+    TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(0, 290, 0, 0)}):Play()
+    task.wait(0.25)
+    ScreenGui:Destroy()
 end)
 
 UserInput.InputBegan:Connect(function(input, gP)
