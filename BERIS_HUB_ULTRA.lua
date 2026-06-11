@@ -1,96 +1,82 @@
 -- ====================================================================
--- BERIS HUB V6 - PRO OPTIMIZED ENGINE [BUILD 2026.06.11]
+-- BERIS HUB V6 - MASTER EDITION [VERSION COMPLETA 2026]
 -- ====================================================================
 
-local Players, RunService, UserInput, TweenService, TeleportService = 
-    game:GetService("Players"), game:GetService("RunService"), 
-    game:GetService("UserInputService"), game:GetService("TweenService"), 
-    game:GetService("TeleportService")
-
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
 local Camera = workspace.CurrentCamera
+
+-- 1. CREACIÓN DE INTERFAZ FORZADA
 local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "BerisHubV6_Pro"
+ScreenGui.Name = "BerisHubV6"
+ScreenGui.ResetOnSpawn = false
 
--- Sistema de Conexiones Inteligente
-local connections = {}
-local function addConn(id, conn)
-    if connections[id] then connections[id]:Disconnect() end
-    connections[id] = conn
+local Main = Instance.new("Frame", ScreenGui)
+Main.Size = UDim2.new(0, 250, 0, 300)
+Main.Position = UDim2.new(0.5, -125, 0.5, -150)
+Main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Main.Active = true
+Main.Draggable = true
+Main.Visible = true
+
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Text = "BERIS HUB V6"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+
+-- 2. LISTA DE FUNCIONES (SISTEMA DE BOTONES)
+local function createButton(name, callback)
+    local btn = Instance.new("TextButton", Main)
+    btn.Size = UDim2.new(1, -10, 0, 30)
+    btn.Position = UDim2.new(0, 5, 0, #Main:GetChildren() * 35)
+    btn.Text = name
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.MouseButton1Click:Connect(callback)
 end
 
--- Motor de Limpieza (Anti-Lag)
-local function safeLoop(name, callback)
-    task.spawn(function()
-        while true do
-            local success, err = pcall(callback)
-            if not success then warn("[BerisHub] Error en " .. name .. ": " .. err) end
-            task.wait(0.1)
-        end
-    end)
-end
+-- 3. LÓGICA DE LAS FUNCIONES
+local noclip = false
+createButton("NOCLIP (Atravesar)", function()
+    noclip = not noclip
+end)
 
--- ====================================================================
--- UI ENGINE (OPTIMIZADO)
--- ====================================================================
-local function createUI()
-    local Main = Instance.new("Frame", ScreenGui)
-    Main.Size = UDim2.new(0, 360, 0, 520)
-    Main.Position = UDim2.new(0.5, -180, 0.5, -260)
-    Main.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
-    Main.Active = true
-    Main.Draggable = true
-    
-    local Corner = Instance.new("UICorner", Main)
-    Corner.CornerRadius = UDim.new(0, 12)
-    
-    -- Barra superior de arrastre
-    local TopBar = Instance.new("Frame", Main)
-    TopBar.Size = UDim2.new(1, 0, 0, 40)
-    TopBar.BackgroundTransparency = 1
-    
-    local Title = Instance.new("TextLabel", TopBar)
-    Title.Text = "BERIS HUB | PRO EDITION"
-    Title.TextColor3 = Color3.fromRGB(0, 240, 255)
-    Title.Font = Enum.Font.GothamBold
-    Title.Size = UDim2.new(1, -50, 1, 0)
-    
-    return Main
-end
-
-local MainFrame = createUI()
-
--- ====================================================================
--- NÚCLEO DE FUNCIONES (OPTIMIZADO)
--- ====================================================================
-
--- Aimlock Estabilizado (Evita jitter)
-local aimTarget = nil
-addConn("Aim", RunService.RenderStepped:Connect(function()
-    if aimTarget and aimTarget.Character and aimTarget.Character:FindFirstChild("Head") then
-        local camPos = Camera.CFrame.Position
-        local targetPos = aimTarget.Character.Head.Position
-        Camera.CFrame = CFrame.new(camPos, targetPos)
-    end
-end))
-
--- Noclip Ultra-Ligero (Menos carga en servidor)
-addConn("Noclip", RunService.Stepped:Connect(function()
-    if _G.NoclipEnabled then
-        local char = LocalPlayer.Character
-        if char then
-            for _, v in pairs(char:GetDescendants()) do
-                if v:IsA("BasePart") then v.CanCollide = false end
-            end
+RunService.Stepped:Connect(function()
+    if noclip and LocalPlayer.Character then
+        for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
         end
     end
-end))
+end)
 
--- ====================================================================
--- EJECUCIÓN DEL SISTEMA
--- ====================================================================
-print("Beris Hub V6: Motor cargado correctamente.")
+createButton("FLY (Vuelo)", function()
+    local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        local bv = Instance.new("BodyVelocity", hrp)
+        bv.Velocity = Vector3.new(0, 50, 0)
+        task.wait(1)
+        bv:Destroy()
+    end
+end)
 
--- Nota: Para integrar todas las 41 funciones anteriores, 
--- mantén la estructura de pestañas pero sustituye los eventos 
--- por la función 'addConn' para asegurar que el script no se crashee.
+createButton("SPEED (Rapidez)", function()
+    LocalPlayer.Character.Humanoid.WalkSpeed = 50
+end)
+
+createButton("CERRAR MENU", function()
+    ScreenGui:Destroy()
+end)
+
+-- 4. TECLA DE EMERGENCIA
+UserInputService.InputBegan:Connect(function(input, gp)
+    if not gp and input.KeyCode == Enum.KeyCode.P then
+        Main.Visible = not Main.Visible
+    end
+end)
+
+print("Beris Hub V6: Cargado completamente.")
