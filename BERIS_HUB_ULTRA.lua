@@ -2,6 +2,11 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
 ------------------------------------------------
+-- ESPERAR PLAYERGUI (IMPORTANTE)
+------------------------------------------------
+local playerGui = player:WaitForChild("PlayerGui")
+
+------------------------------------------------
 -- CONFIG
 ------------------------------------------------
 local incomeMode = "BASICO"
@@ -17,7 +22,8 @@ local config = {
 ------------------------------------------------
 local gui = Instance.new("ScreenGui")
 gui.Name = "IncomeUI"
-gui.Parent = player:WaitForChild("PlayerGui")
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 200, 0, 150)
@@ -32,6 +38,9 @@ label.TextColor3 = Color3.fromRGB(255,255,255)
 label.Text = "Modo: BASICO"
 label.Parent = frame
 
+------------------------------------------------
+-- BOTÓN CREATOR
+------------------------------------------------
 local function btn(text, y)
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1,-10,0,30)
@@ -62,7 +71,7 @@ btn("PLUS", 115).MouseButton1Click:Connect(function()
 end)
 
 ------------------------------------------------
--- DINERO
+-- DINERO LOOP
 ------------------------------------------------
 local function giveMoney(amount)
     local stats = player:FindFirstChild("leaderstats")
@@ -79,7 +88,6 @@ end
 task.spawn(function()
     while true do
         local data = config[incomeMode]
-
         giveMoney(data.money)
         task.wait(data.delay)
     end
