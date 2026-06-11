@@ -1,5 +1,5 @@
 -- ====================================================================
--- BERIS HUB V6 - ROBLOX SCRIPT (EDICIÓN DEFINITIVA CON ESP Y AIM)
+-- BERIS HUB V6 - ROBLOX SCRIPT (VERSION COMPACTA SIN CAMPOS EXTRAS)
 -- ====================================================================
 
 local Players = game:GetService("Players")
@@ -26,15 +26,14 @@ local aimlockConnection = nil
 
 -- 1. CREACIÓN DE LA INTERFAZ VISUAL (GUI)
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "BerisHubV6"
+ScreenGui.Name = "BerisHubV6_Compact"
 ScreenGui.ResetOnSpawn = false
 
 local success, coreGui = pcall(function() return game:GetService("CoreGui") end)
 if success and coreGui then ScreenGui.Parent = coreGui else ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
 
--- Marco Principal
 local MainFrame = Instance.new("Frame")
-local fullSize = UDim2.new(0, 250, 0, 450)
+local fullSize = UDim2.new(0, 250, 0, 380) -- Altura reducida al quitar componentes
 local miniSize = UDim2.new(0, 250, 0, 40)
 
 MainFrame.Name = "MainFrame"
@@ -51,7 +50,6 @@ local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 12)
 UICorner.Parent = MainFrame
 
--- Título del Hub
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.Text = "     BERIS HUB V6"
@@ -67,7 +65,6 @@ local TitleCorner = Instance.new("UICorner")
 TitleCorner.CornerRadius = UDim.new(0, 12)
 TitleCorner.Parent = Title
 
--- Botón Cerrar/Destruir (X)
 local BtnClose = Instance.new("TextButton")
 BtnClose.Size = UDim2.new(0, 25, 0, 25)
 BtnClose.Position = UDim2.new(0, 10, 0, 7)
@@ -83,7 +80,6 @@ local CloseCorner = Instance.new("UICorner")
 CloseCorner.CornerRadius = UDim.new(0, 6)
 CloseCorner.Parent = BtnClose
 
--- Botón Minimizar (-)
 local BtnMinimize = Instance.new("TextButton")
 BtnMinimize.Size = UDim2.new(0, 25, 0, 25)
 BtnMinimize.Position = UDim2.new(1, -35, 0, 7)
@@ -100,24 +96,21 @@ local MinCorner = Instance.new("UICorner")
 MinCorner.CornerRadius = UDim.new(0, 6)
 MinCorner.Parent = BtnMinimize
 
--- CONTENEDOR CON SCROLLBAR (Para meter infinitas opciones de forma cómoda)
 local ScrollFrame = Instance.new("ScrollingFrame")
 ScrollFrame.Size = UDim2.new(1, 0, 1, -45)
 ScrollFrame.Position = UDim2.new(0, 0, 0, 45)
 ScrollFrame.BackgroundTransparency = 1
 ScrollFrame.BorderSizePixel = 0
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 680) -- Altura del contenido deslizable
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 500) -- Ajustado al nuevo tamaño de contenido
 ScrollFrame.ScrollBarThickness = 6
 ScrollFrame.Parent = MainFrame
 
--- AUTOMATIZACIÓN DE DISEÑO EN LISTA
 local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.Parent = ScrollFrame
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Padding = UDim.new(0, 8)
 UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- GENERADORES DE COMPONENTES
 local function createButton(text, color)
     local button = Instance.new("TextButton")
     button.Size = UDim2.new(0, 210, 0, 35)
@@ -154,7 +147,7 @@ local function createTextBox(placeholder, color)
     return textBox
 end
 
--- --- CREACIÓN DE LAS 11 OPCIONES EN ORDEN ---
+-- --- BOTONES Y MENÚS FILTRADOS ---
 local BtnSaveTp = createButton("Guardar TP", Color3.fromRGB(0, 110, 220))
 local BtnTp     = createButton("Teletransportar", Color3.fromRGB(0, 160, 90))
 local BtnTras   = createButton("Tras (Noclip): OFF", Color3.fromRGB(160, 40, 40))
@@ -164,13 +157,59 @@ local BtnEsp    = createButton("Wallhack / ESP: OFF", Color3.fromRGB(130, 30, 16
 local BtnAim    = createButton("Aimlock (Tecla E): OFF", Color3.fromRGB(200, 120, 0))
 local BtnGod    = createButton("God Mode Visual", Color3.fromRGB(40, 140, 140))
 
-local InputSpeed = createTextBox("Ingresar Velocidad")
-local InputJump  = createTextBox("Ingresar Salto")
 local InputFly   = createTextBox("Ingresar Vel. Vuelo")
 local InputMoney = createTextBox("Ingresar Money ($)", Color3.fromRGB(60, 50, 15))
 
 -- ====================================================================
--- SISTEMA 1: WALLHACK (ESP) COORDENADAS VISUALES
+-- SISTEMA DE AIMLOCK (FIJADO DE CÁMARA CORREGIDO)
+-- ====================================================================
+local function getClosestPlayerToCursor()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid.Health > 0 then
+                local head = player.Character.Head
+                local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                
+                if onScreen then
+                    local mousePos = UserInput:GetMouseLocation()
+                    local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                    
+                    if distance < shortestDistance then
+                        closestPlayer = player
+                        shortestDistance = distance
+                    end
+                end
+            end
+        end
+    end
+    return closestPlayer
+end
+
+BtnAim.MouseButton1Click:Connect(function()
+    aimlockEnabled = not aimlockEnabled
+    BtnAim.Text = aimlockEnabled and "Aimlock: ACTIVO [E]" or "Aimlock (Tecla E): OFF"
+    BtnAim.BackgroundColor3 = aimlockEnabled and Color3.fromRGB(50, 180, 50) or Color3.fromRGB(200, 120, 0)
+    
+    if aimlockEnabled then
+        aimlockConnection = RunService.RenderStepped:Connect(function()
+            if UserInput:IsKeyDown(Enum.KeyCode.E) then
+                local target = getClosestPlayerToCursor()
+                if target and target.Character and target.Character:FindFirstChild("Head") then
+                    Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
+                end
+            end
+        end)
+    else
+        if aimlockConnection then aimlockConnection:Disconnect() aimlockConnection = nil end
+    end
+end)
+
+-- ====================================================================
+-- ESP / WALLHACK
 -- ====================================================================
 local function applyESP()
     for _, plr in pairs(Players:GetPlayers()) do
@@ -206,45 +245,9 @@ BtnEsp.MouseButton1Click:Connect(function()
 end)
 
 -- ====================================================================
--- SISTEMA 2: AIMLOCK LIGERO (TECLA E)
+-- FUNCIONES COMPLEMENTARIAS
 -- ====================================================================
-local function getClosestPlayer()
-    local closest = nil
-    local shortestDistance = math.huge
-    for _, plr in pairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("Head") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local distance = (plr.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-            if distance < shortestDistance then
-                closest = plr
-                shortestDistance = distance
-            end
-        end
-    end
-    return closest
-end
 
-BtnAim.MouseButton1Click:Connect(function()
-    aimlockEnabled = not aimlockEnabled
-    BtnAim.Text = aimlockEnabled and "Aimlock: ACTIVO [E]" or "Aimlock (Tecla E): OFF"
-    BtnAim.BackgroundColor3 = aimlockEnabled and Color3.fromRGB(50, 180, 50) or Color3.fromRGB(200, 120, 0)
-    
-    if aimlockEnabled then
-        aimlockConnection = RunService.RenderStepped:Connect(function()
-            if UserInput:IsKeyDown(Enum.KeyCode.E) then
-                local target = getClosestPlayer()
-                if target and target.Character and target.Character:FindFirstChild("Head") then
-                    Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
-                end
-            end
-        end)
-    else
-        if aimlockConnection then aimlockConnection:Disconnect() aimlockConnection = nil end
-    end
-end)
-
--- ====================================================================
--- SISTEMA 3: GOD MODE VISUAL
--- ====================================================================
 BtnGod.MouseButton1Click:Connect(function()
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -257,9 +260,6 @@ BtnGod.MouseButton1Click:Connect(function()
     end
 end)
 
--- ====================================================================
--- LÓGICA DE MINIMIZAR, OCULTAR Y CERRAR
--- ====================================================================
 BtnMinimize.MouseButton1Click:Connect(function()
     isMinimised = not isMinimised
     if isMinimised then
@@ -274,7 +274,6 @@ BtnMinimize.MouseButton1Click:Connect(function()
 end)
 
 BtnClose.MouseButton1Click:Connect(function()
-    -- Limpieza total antes de autodestruirse
     if flyConnection then flyConnection:Disconnect() end
     if infJumpConnection then infJumpConnection:Disconnect() end
     if espConnection then espConnection:Disconnect() end
@@ -286,11 +285,6 @@ UserInput.InputBegan:Connect(function(input, gameProcessed)
     if not gameProcessed and input.KeyCode == Enum.KeyCode.P then MainFrame.Visible = not MainFrame.Visible end
 end)
 
--- ====================================================================
--- SECCIÓN DE MOVIMIENTO Y MECÁNICAS PREVIAS (CORREGIDAS)
--- ====================================================================
-
--- Guardar TP
 BtnSaveTp.MouseButton1Click:Connect(function()
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
@@ -301,7 +295,6 @@ BtnSaveTp.MouseButton1Click:Connect(function()
     end
 end)
 
--- Teletransportar
 BtnTp.MouseButton1Click:Connect(function()
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
@@ -311,7 +304,6 @@ BtnTp.MouseButton1Click:Connect(function()
     end
 end)
 
--- Tras (Noclip)
 BtnTras.MouseButton1Click:Connect(function()
     noclipEnabled = not noclipEnabled
     BtnTras.Text = noclipEnabled and "Tras (Noclip): ON" or "Tras (Noclip): OFF"
@@ -326,7 +318,6 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Salto Infinito
 BtnInfJ.MouseButton1Click:Connect(function()
     infJumpEnabled = not infJumpEnabled
     BtnInfJ.Text = infJumpEnabled and "Salto Infinito: ON" or "Salto Infinito: OFF"
@@ -343,7 +334,6 @@ BtnInfJ.MouseButton1Click:Connect(function()
     end
 end)
 
--- Vuelo (Fly)
 BtnFly.MouseButton1Click:Connect(function()
     flyEnabled = not flyEnabled
     BtnFly.Text = flyEnabled and "Vuelo (Fly): ON" or "Vuelo (Fly): OFF"
@@ -370,26 +360,6 @@ BtnFly.MouseButton1Click:Connect(function()
         end)
     else
         if flyConnection then flyConnection:Disconnect() flyConnection = nil end
-    end
-end)
-
--- Inputs de Texto (FocusLost)
-InputSpeed.FocusLost:Connect(function(ep)
-    if ep then
-        local v = tonumber(InputSpeed.Text)
-        if v and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-            LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = v
-        end
-    end
-end)
-
-InputJump.FocusLost:Connect(function(ep)
-    if ep then
-        local v = tonumber(InputJump.Text)
-        if v and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-            LocalPlayer.Character:FindFirstChildOfClass("Humanoid").UseJumpPower = true
-            LocalPlayer.Character:FindFirstChildOfClass("Humanoid").JumpPower = v
-        end
     end
 end)
 
