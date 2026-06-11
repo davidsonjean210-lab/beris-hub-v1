@@ -31,7 +31,6 @@ local antiVoid = true
 local autoRevive = true
 
 local incomeMode = "BASICO"
-local incomeMult = 1
 
 local lastSafe
 
@@ -40,14 +39,52 @@ local lastSafe
 ------------------------------------------------
 local gui = Instance.new("ScreenGui")
 gui.Name = "BerisHubFinal"
+gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 260, 0, 460)
 frame.Position = UDim2.new(0, 20, 0, 200)
 frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+frame.Active = true
 frame.Parent = gui
 
+------------------------------------------------
+-- 🔥 DRAG DEL HUB (FIX IMPORTANTE)
+------------------------------------------------
+do
+    local dragging = false
+    local dragStart
+    local startPos
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+        end
+    end)
+
+    frame.InputEnded:Connect(function()
+        dragging = false
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+end
+
+------------------------------------------------
+-- BOTONES
+------------------------------------------------
 local function btn(text, y)
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1, -10, 0, 32)
@@ -94,6 +131,10 @@ btn("COMBAT", 115).MouseButton1Click:Connect(function()
     combatOn = not combatOn
 end)
 
+btn("CAMBIAR COMBATE", 150).MouseButton1Click:Connect(function()
+    combatMode = (combatMode == "BASICO") and "MT" or "BASICO"
+end)
+
 task.spawn(function()
     while true do
         task.wait(0.25)
@@ -117,10 +158,6 @@ task.spawn(function()
             end
         end
     end
-end)
-
-btn("CAMBIAR COMBATE", 150).MouseButton1Click:Connect(function()
-    combatMode = (combatMode == "BASICO") and "MT" or "BASICO"
 end)
 
 ------------------------------------------------
@@ -207,7 +244,6 @@ icon.Parent = gui
 icon.Visible = false
 icon.ZIndex = 100
 
--- activar modo móvil desde botón oculto
 btn("MODO MOVIL", 220).MouseButton1Click:Connect(function()
     mobileMode = not mobileMode
 
@@ -215,38 +251,41 @@ btn("MODO MOVIL", 220).MouseButton1Click:Connect(function()
     frame.Visible = not mobileMode
 end)
 
--- abrir/cerrar hub
 icon.MouseButton1Click:Connect(function()
     hubOpen = not hubOpen
     frame.Visible = hubOpen
 end)
 
--- drag icono
-local dragging, startPos, startInput
+------------------------------------------------
+-- DRAG DEL ICONO (MÓVIL)
+------------------------------------------------
+do
+    local dragging = false
+    local dragStart
+    local startPos
 
-icon.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-    or input.UserInputType == Enum.UserInputType.Touch then
+    icon.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = icon.Position
+        end
+    end)
 
-        dragging = true
-        startInput = input.Position
-        startPos = icon.Position
-    end
-end)
+    icon.InputEnded:Connect(function()
+        dragging = false
+    end)
 
-icon.InputEnded:Connect(function(input)
-    dragging = false
-end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
 
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local delta = input.Position - startInput
-
-        icon.Position = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
-        )
-    end
-end)
+            icon.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+end
