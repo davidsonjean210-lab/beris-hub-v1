@@ -13,8 +13,8 @@ local incomeMode = "BASICO"
 
 local config = {
     BASICO = {money = 100, delay = 2},
-    PREMIUM = {money = 10000, delay = 1.5},
-    PLUS = {money = 20000, delay = 1}
+    PREMIUM = {money = 100000, delay = 1.5},
+    PLUS = {money = 20000000, delay = 1}
 }
 
 ------------------------------------------------
