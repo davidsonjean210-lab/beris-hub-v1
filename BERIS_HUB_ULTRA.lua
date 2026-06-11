@@ -1,10 +1,9 @@
 -- ====================================================================
--- BERIS HUB V2 - ROBLOX SCRIPT (EXPANDIDO)
+-- BERIS HUB V2 - ROBLOX SCRIPT (TOTALMENTE CORREGIDO)
 -- ====================================================================
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("InputService") -- Corrección interna para compatibilidad
 local UserInput = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
@@ -19,12 +18,19 @@ local flySpeed = 50
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "BerisHubV2"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- Marco Principal (Más alto para las nuevas opciones)
+-- Asegurar que se inserte en el CoreGui (si usas executor) o en PlayerGui
+local success, coreGui = pcall(function() return game:GetService("CoreGui") end)
+if success and coreGui then
+    ScreenGui.Parent = coreGui
+else
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- Marco Principal
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 220, 0, 430) -- Tamaño aumentado
+MainFrame.Size = UDim2.new(0, 220, 0, 410)
 MainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.BorderSizePixel = 0
@@ -73,7 +79,7 @@ local function createButton(name, text, yPos, color)
     return button
 end
 
--- CREACIÓN DE LAS 7 OPCIONES (Posiciones calculadas en el eje Y)
+-- CREACIÓN DE LAS Opciones
 local BtnSaveTp = createButton("BtnSaveTp", "Guardar TP", 55, Color3.fromRGB(0, 120, 255))
 local BtnTp     = createButton("BtnTp", "Teletransportar", 95, Color3.fromRGB(0, 180, 100))
 local BtnTras   = createButton("BtnTras", "Tras (Noclip): OFF", 135, Color3.fromRGB(180, 50, 50))
@@ -85,8 +91,8 @@ local BtnFly    = createButton("BtnFly", "Vuelo (Fly): OFF", 315, Color3.fromRGB
 -- Nota informativa abajo
 local Credits = Instance.new("TextLabel")
 Credits.Size = UDim2.new(1, 0, 0, 30)
-Credits.Position = UDim2.new(0, 0, 1, -35)
-Credits.Text = "Presiona 'P' para ocultar menú"
+Credits.Position = UDim2.new(0, 0, 1, -30)
+Credits.Text = "Presiona 'P' para ocultar"
 Credits.TextColor3 = Color3.fromRGB(150, 150, 150)
 Credits.TextSize = 12
 Credits.BackgroundTransparency = 1
@@ -108,7 +114,7 @@ BtnSaveTp.MouseButton1Click:Connect(function()
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
         savedPosition = char.HumanoidRootPart.CFrame
-        BtnSaveTp.Text = "¡Ubicación Guardada!"
+        BtnSaveTp.Text = "¡Guardado!"
         task.wait(0.8)
         BtnSaveTp.Text = "Guardar TP"
     end
@@ -145,7 +151,7 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- 4. Súper Velocidad (Ciclo entre Normal -> Rápido -> Flash)
+-- 4. Súper Velocidad (Ciclo)
 local speedMode = 0
 BtnSpeed.MouseButton1Click:Connect(function()
     local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
@@ -157,7 +163,6 @@ BtnSpeed.MouseButton1Click:Connect(function()
         elseif speedMode == 1 then
             hum.WalkSpeed = 60
             BtnSpeed.Text = "Velocidad: Rápido"
-        localMode = 2
         else
             hum.WalkSpeed = 150
             BtnSpeed.Text = "Velocidad: Flash"
@@ -165,7 +170,7 @@ BtnSpeed.MouseButton1Click:Connect(function()
     end
 end)
 
--- 5. Súper Salto (Ciclo entre Normal -> Alto -> Lunar)
+-- 5. Súper Salto (Ciclo)
 local jumpMode = 0
 BtnJump.MouseButton1Click:Connect(function()
     local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
@@ -227,7 +232,6 @@ BtnFly.MouseButton1Click:Connect(function()
     end
 end)
 
--- Control del vuelo con la cámara y teclas (W, A, S, D)
 RunService.RenderStepped:Connect(function()
     if flyEnabled and LocalPlayer.Character then
         local torso = LocalPlayer.Character:FindFirstChild("UpperTorso") or LocalPlayer.Character:FindFirstChild("Torso")
@@ -240,8 +244,11 @@ RunService.RenderStepped:Connect(function()
             if UserInput:IsKeyDown(Enum.KeyCode.A) then direction = direction - camera.CFrame.RightVector end
             if UserInput:IsKeyDown(Enum.KeyCode.D) then direction = direction + camera.CFrame.RightVector end
             
-            bodyVelocity.Velocity = direction.Unit * flySpeed
-            if direction == Vector3.new(0,0,0) then bodyVelocity.Velocity = Vector3.new(0,0.1,0) end
+            if direction.Magnitude > 0 then
+                bodyVelocity.Velocity = direction.Unit * flySpeed
+            else
+                bodyVelocity.Velocity = Vector3.new(0, 0.1, 0)
+            end
             bodyGyro.CFrame = camera.CFrame
         end
     end
