@@ -1,10 +1,12 @@
 -- ====================================================================
--- BERIS HUB V6 - VERIFIED, FAST LOCK & SPEED EDITION (2026)
+-- BERIS HUB V6 - CYBERPUNK ULTRA INTERFACE EDITION (2026)
 -- ====================================================================
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInput = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local VirtualUser = game:GetService("VirtualUser")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
@@ -14,263 +16,285 @@ local noclipEnabled = false
 local infJumpEnabled = false
 local flyEnabled = false
 local flySpeed = 50
-local walkSpeedEnabled = false -- Estado del hack de velocidad
-local customWalkSpeed = 16      -- Velocidad por defecto de Roblox
+local walkSpeedEnabled = false
+local customWalkSpeed = 16
 local isMinimised = false
 local espEnabled = false
 local aimlockEnabled = false
 local fastAimEnabled = false
 local regenEnabled = false
+local autoFamaEnabled = false
 
--- Almacén central de eventos
-local connections = {
-    fly = nil,
-    infJump = nil,
-    esp = nil,
-    aimlock = nil,
-    fastAim = nil,
-    regen = nil,
-    noclip = nil,
-    walkSpeed = nil -- Conexión para la velocidad constante
-}
+local MAX_REAL_DISTANCE = 300 
+local connections = {}
 
--- 1. CONTROL DE INYECCIÓN DE INTERFAZ INTEGRADA
+-- 1. INYECTOR DE INTERFAZ PREMIUM
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "BerisHubV6_Verified"
+ScreenGui.Name = "BerisHubV6_CyberUI"
 ScreenGui.ResetOnSpawn = false
 
 local function injectGui()
     local success, coreGui = pcall(function() return game:GetService("CoreGui") end)
-    if success and coreGui then
-        ScreenGui.Parent = coreGui
-    else
+    if success and coreGui then ScreenGui.Parent = coreGui else
         local playerGui = LocalPlayer:WaitForChild("PlayerGui", 7)
-        if playerGui then ScreenGui.Parent = playerGui else ScreenGui.Parent = game end
+        ScreenGui.Parent = playerGui or game
     end
 end
 injectGui()
 
--- Estructuras Base de Diseño
+-- CONTENEDOR PRINCIPAL (MAIN FRAME)
 local MainFrame = Instance.new("Frame")
-local fullSize = UDim2.new(0, 260, 0, 495) -- Ajustado para los nuevos componentes de velocidad
-local miniSize = UDim2.new(0, 260, 0, 42)
+local fullSize = UDim2.new(0, 270, 0, 510)
+local miniSize = UDim2.new(0, 270, 0, 45)
 
 MainFrame.Name = "MainFrame"
 MainFrame.Size = fullSize
 MainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(11, 12, 15)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 16, 22)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 10)
-UICorner.Parent = MainFrame
+-- Degradado Estilo Cyberpunk
+local UIGradient = Instance.new("UIGradient")
+UIGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(12, 13, 18)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(24, 27, 36))
+}
+UIGradient.Rotation = 45
+UIGradient.Parent = MainFrame
 
-local NeonBar = Instance.new("Frame")
-NeonBar.Size = UDim2.new(1, 0, 0, 3)
-NeonBar.BackgroundColor3 = Color3.fromRGB(0, 229, 255)
-NeonBar.BorderSizePixel = 0
-NeonBar.Parent = MainFrame
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.Parent = MainFrame
+
+-- Línea Neon Superior de Carga
+local NeonLine = Instance.new("Frame")
+NeonLine.Size = UDim2.new(1, 0, 0, 3)
+NeonLine.BackgroundColor3 = Color3.fromRGB(0, 240, 255)
+NeonLine.BorderSizePixel = 0
+NeonLine.Parent = MainFrame
+
+-- TÍTULO Y ENCABEZADO
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 45)
+Header.BackgroundTransparency = 1
+Header.Parent = MainFrame
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 42)
-Title.Text = "      BERIS HUB V6 • VERIFIED"
-Title.TextColor3 = Color3.fromRGB(245, 245, 245)
+Title.Size = UDim2.new(1, 0, 1, 0)
+Title.Text = "   BERIS HUB V6 • <font color='#00F0FF'>ELITE</font>"
+Title.RichText = true
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 14
 Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.BackgroundColor3 = Color3.fromRGB(18, 19, 23)
-Title.BorderSizePixel = 0
-Title.Parent = MainFrame
+Title.BackgroundTransparency = 1
+Title.Parent = Header
 
+-- Botón Cerrar Elegantizado
 local BtnClose = Instance.new("TextButton")
-BtnClose.Size = UDim2.new(0, 24, 0, 24)
-BtnClose.Position = UDim2.new(0, 12, 0, 9)
-BtnClose.Text = "×"
-BtnClose.TextColor3 = Color3.fromRGB(255, 75, 75)
-BtnClose.TextSize = 20
+BtnClose.Size = UDim2.new(0, 22, 0, 22)
+BtnClose.Position = UDim2.new(1, -32, 0, 11)
+BtnClose.Text = "✕"
+BtnClose.TextColor3 = Color3.fromRGB(255, 90, 90)
+BtnClose.TextSize = 12
 BtnClose.Font = Enum.Font.GothamBold
-BtnClose.BackgroundColor3 = Color3.fromRGB(28, 18, 22)
+BtnClose.BackgroundColor3 = Color3.fromRGB(35, 20, 25)
 BtnClose.BorderSizePixel = 0
-BtnClose.Parent = MainFrame
+BtnClose.Parent = Header
 
 local CloseCorner = Instance.new("UICorner")
 CloseCorner.CornerRadius = UDim.new(0, 6)
 CloseCorner.Parent = BtnClose
 
+-- Botón Minimizar Elegantizado
 local BtnMinimize = Instance.new("TextButton")
-BtnMinimize.Size = UDim2.new(0, 24, 0, 24)
-BtnMinimize.Position = UDim2.new(1, -36, 0, 9)
-BtnMinimize.Text = "−"
-BtnMinimize.TextColor3 = Color3.fromRGB(200, 200, 200)
-BtnMinimize.TextSize = 18
+BtnMinimize.Size = UDim2.new(0, 22, 0, 22)
+BtnMinimize.Position = UDim2.new(1, -60, 0, 11)
+BtnMinimize.Text = "—"
+BtnMinimize.TextColor3 = Color3.fromRGB(0, 240, 255)
+BtnMinimize.TextSize = 12
 BtnMinimize.Font = Enum.Font.GothamBold
-BtnMinimize.BackgroundColor3 = Color3.fromRGB(28, 30, 38)
+BtnMinimize.BackgroundColor3 = Color3.fromRGB(20, 35, 45)
 BtnMinimize.BorderSizePixel = 0
-BtnMinimize.ZIndex = 3
-BtnMinimize.Parent = MainFrame
+BtnMinimize.Parent = Header
 
 local MinCorner = Instance.new("UICorner")
 MinCorner.CornerRadius = UDim.new(0, 6)
 MinCorner.Parent = BtnMinimize
 
+-- CONTENEDOR DE SCROLL OPTIMIZADO
 local ScrollFrame = Instance.new("ScrollingFrame")
-ScrollFrame.Size = UDim2.new(1, 0, 1, -48)
-ScrollFrame.Position = UDim2.new(0, 0, 0, 48)
+ScrollFrame.Size = UDim2.new(1, 0, 1, -50)
+ScrollFrame.Position = UDim2.new(0, 0, 0, 50)
 ScrollFrame.BackgroundTransparency = 1
 ScrollFrame.BorderSizePixel = 0
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 560) -- Expandido para el scroll
-ScrollFrame.ScrollBarThickness = 4
-ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 229, 255)
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 580)
+ScrollFrame.ScrollBarThickness = 3
+ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 240, 255)
 ScrollFrame.Parent = MainFrame
 
 local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.Parent = ScrollFrame
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Padding = UDim.new(0, 7)
+UIListLayout.Padding = UDim.new(0, 8)
 UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
-local function createButton(text, color)
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(0, 230, 0, 34)
-    button.Text = text
-    button.TextColor3 = Color3.fromRGB(240, 240, 240)
-    button.TextSize = 13
-    button.Font = Enum.Font.GothamSemibold
-    button.BackgroundColor3 = color
-    button.BorderSizePixel = 0
-    button.Parent = ScrollFrame
+-- FACTORÍA DE BOTONES PREMIUM CON LED INDICADOR
+local function createPremiumButton(text)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 246, 0, 36)
+    frame.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
+    frame.BorderSizePixel = 0
+    frame.Parent = ScrollFrame
     
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 5)
-    btnCorner.Parent = button
-    return button
+    local fCorner = Instance.new("UICorner")
+    fCorner.CornerRadius = UDim.new(0, 6)
+    fCorner.Parent = frame
+
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, -30, 1, 0)
+    button.Position = UDim2.new(0, 10, 0, 0)
+    button.Text = text
+    button.TextColor3 = Color3.fromRGB(230, 235, 245)
+    button.TextSize = 12
+    button.Font = Enum.Font.GothamSemibold
+    button.TextXAlignment = Enum.TextXAlignment.Left
+    button.BackgroundTransparency = 1
+    button.Parent = frame
+
+    -- El pequeño foco LED de estado
+    local led = Instance.new("Frame")
+    led.Size = UDim2.new(0, 8, 0, 8)
+    led.Position = UDim2.new(1, -18, 0, 14)
+    led.BackgroundColor3 = Color3.fromRGB(255, 70, 70) -- Apagado (Rojo)
+    led.BorderSizePixel = 0
+    led.Parent = frame
+
+    local ledCorner = Instance.new("UICorner")
+    ledCorner.CornerRadius = UDim.new(1, 0)
+    ledCorner.Parent = led
+
+    return button, led
 end
 
-local function createTextBox(placeholder, color)
+local function updateLed(led, state)
+    TweenService:Create(led, TweenInfo.new(0.3), {
+        BackgroundColor3 = state and Color3.fromRGB(0, 255, 130) or Color3.fromRGB(255, 70, 70)
+    }):Play()
+end
+
+local function createPremiumTextBox(placeholder)
     local textBox = Instance.new("TextBox")
-    textBox.Size = UDim2.new(0, 230, 0, 34)
+    textBox.Size = UDim2.new(0, 246, 0, 36)
     textBox.PlaceholderText = placeholder
     textBox.Text = ""
     textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    textBox.PlaceholderColor3 = Color3.fromRGB(110, 115, 125)
-    textBox.TextSize = 13
+    textBox.PlaceholderColor3 = Color3.fromRGB(110, 115, 130)
+    textBox.TextSize = 11
     textBox.Font = Enum.Font.Gotham
-    textBox.BackgroundColor3 = color or Color3.fromRGB(20, 22, 27)
+    textBox.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
     textBox.BorderSizePixel = 0
     textBox.Parent = ScrollFrame
     
     local boxCorner = Instance.new("UICorner")
-    boxCorner.CornerRadius = UDim.new(0, 5)
+    boxCorner.CornerRadius = UDim.new(0, 6)
     boxCorner.Parent = textBox
+    
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(35, 38, 50)
+    stroke.Thickness = 1
+    stroke.Parent = textBox
+    
     return textBox
 end
 
--- Generación de Controles Visuales
-local BtnSaveTp  = createButton("Guardar Ubicación TP", Color3.fromRGB(22, 35, 59))
-local BtnTp      = createButton("Teletransportar", Color3.fromRGB(18, 53, 36))
-local BtnTras    = createButton("Noclip (Atravesar): OFF", Color3.fromRGB(50, 22, 22))
-local BtnInfJ    = createButton("Salto Infinito: OFF", Color3.fromRGB(35, 38, 45))
-local BtnFly     = createButton("Vuelo (Fly): OFF", Color3.fromRGB(15, 48, 63))
-local BtnSpeed   = createButton("Velocidad de Caminar: OFF", Color3.fromRGB(30, 60, 60)) -- Nuevo Botón
-local BtnEsp     = createButton("Wallhack / ESP Box: OFF", Color3.fromRGB(48, 20, 56))
-local BtnAim     = createButton("Aimlock (Mantener E): OFF", Color3.fromRGB(61, 41, 15))
-local BtnFastAim = createButton("Auto Apuntado Rápido: OFF", Color3.fromRGB(75, 30, 15))
-local BtnGod     = createButton("God Mode (Visual)", Color3.fromRGB(20, 50, 50))
-local BtnRegen   = createButton("Auto Regenerar Vida: OFF", Color3.fromRGB(40, 60, 20))
+-- Instanciación de Controles Visuales Modernos
+local BtnAutoFama, LedFama = createPremiumButton("Auto Fama / Farm Continuo")
+local BtnFastAim, LedFast   = createPremiumButton("Auto Apuntado Cercano (Aim)")
+local BtnAim, LedAim       = createPremiumButton("Aimlock Tradicional [Mantener E]")
+local BtnEsp, LedEsp       = createPremiumButton("Visualizador Wallhack / ESP Box")
+local BtnFly, LedFly       = createPremiumButton("Modo Vuelo Pro (Fly)")
+local BtnSpeed, LedSpeed   = createPremiumButton("Modificador de Velocidad")
+local BtnTras, LedTras     = createPremiumButton("Noclip (Atravesar Paredes)")
+local BtnInfJ, LedInfJ     = createPremiumButton("Habilitar Salto Infinito")
+local BtnSaveTp, LedSTp    = createPremiumButton("Guardar Coordenadas TP")
+local BtnTp, LedTp         = createPremiumButton("Ejecutar Teletransportación")
+local BtnGod, LedGod       = createPremiumButton("God Mode (Falso / Visual)")
 
-local InputSpeed = createTextBox("Fijar Velocidad (Ej: 50 o 100)") -- Nuevo Input
-local InputFly   = createTextBox("Fijar Velocidad de Vuelo (Ej: 70)")
-local InputMoney = createTextBox("Modificar Money / Cash Visual", Color3.fromRGB(33, 30, 16))
+local InputSpeed = createPremiumTextBox(" Fijar Velocidad de Caminado (Ej: 60)")
+local InputFly   = createPremiumTextBox(" Fijar Velocidad de Vuelo (Ej: 75)")
+local InputMoney = createPremiumTextBox(" Modificar Leaderstats Visualmente")
 
 -- ====================================================================
--- MÓDULO NUEVO: VELOCIDAD DE CAMINAR CONSTANTE (ANTI-RESET)
+-- SISTEMA METROLÓGICO Y CONTROL DE EVENTOS LUA
 -- ====================================================================
-BtnSpeed.MouseButton1Click:Connect(function()
-    walkSpeedEnabled = not walkSpeedEnabled
-    BtnSpeed.Text = walkSpeedEnabled and "Velocidad de Caminar: ON" or "Velocidad de Caminar: OFF"
-    BtnSpeed.BackgroundColor3 = walkSpeedEnabled and Color3.fromRGB(0, 150, 150) or Color3.fromRGB(30, 60, 60)
-    
-    if walkSpeedEnabled then
-        connections.walkSpeed = RunService.Heartbeat:Connect(function()
-            pcall(function()
-                local char = LocalPlayer.Character
-                local hum = char and char:FindFirstChildOfClass("Humanoid")
-                if hum then
-                    hum.WalkSpeed = customWalkSpeed
-                end
-            end)
-        end)
-    else
-        if connections.walkSpeed then connections.walkSpeed:Disconnect() connections.walkSpeed = nil end
-        pcall(function()
-            local char = LocalPlayer.Character
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
-            if hum then hum.WalkSpeed = 16 end -- Restablece al original
-        end)
-    end
+pcall(function()
+    LocalPlayer.Idled:Connect(function()
+        VirtualUser:Button2Down(Vector2.new(0,0), Camera.CFrame)
+        task.wait(1)
+        VirtualUser:Button2Up(Vector2.new(0,0), Camera.CFrame)
+    end)
 end)
 
-InputSpeed.FocusLost:Connect(function(ep)
-    if ep then 
-        local v = tonumber(InputSpeed.Text) 
-        if v then 
-            customWalkSpeed = v 
-            -- Si ya está encendido, actualiza el valor inmediatamente sin apagar el botón
-            local char = LocalPlayer.Character
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
-            if hum and walkSpeedEnabled then hum.WalkSpeed = customWalkSpeed end
-        end 
-    end
-end)
-
--- ====================================================================
--- BUSCADOR MATEMÁTICO DE OBJETIVOS
--- ====================================================================
-local function getClosestPlayerToCursor()
+local function getClosestPlayerToCharacter()
     local closestPlayer = nil
-    local shortestDistance = math.huge
-    local mousePos = UserInput:GetMouseLocation()
+    local shortestDistance = MAX_REAL_DISTANCE
+    local myChar = LocalPlayer.Character
+    local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    if not myHrp then return nil end
 
     for _, player in pairs(Players:GetPlayers()) do
-        pcall(function()
-            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-                local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-                if humanoid and humanoid.Health > 0 then
-                    local screenPos, onScreen = Camera:WorldToViewportPoint(player.Character.Head.Position)
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") and player.Character:FindFirstChild("HumanoidRootPart") then
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid.Health > 0 then
+                local realDistance = (myHrp.Position - player.Character.HumanoidRootPart.Position).Magnitude
+                if realDistance < shortestDistance then
+                    local _, onScreen = Camera:WorldToViewportPoint(player.Character.Head.Position)
                     if onScreen then
-                        local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                        if distance < shortestDistance then
-                            closestPlayer = player
-                            shortestDistance = distance
-                        end
+                        closestPlayer = player
+                        shortestDistance = realDistance
                     end
                 end
             end
-        end)
+        end
     end
     return closestPlayer
 end
 
--- ====================================================================
--- AUTO APUNTADO RÁPIDO (FAST AIM)
--- ====================================================================
+-- LÓGICA DE BOTONES INTERACTIVOS ACTUALIZADOS CON LEDS
+BtnAutoFama.MouseButton1Click:Connect(function()
+    autoFamaEnabled = not autoFamaEnabled
+    updateLed(LedFama, autoFamaEnabled)
+    if autoFamaEnabled then
+        task.spawn(function()
+            while autoFamaEnabled do
+                pcall(function()
+                    local char = LocalPlayer.Character
+                    local tool = char and char:FindFirstChildOfClass("Tool")
+                    if tool then tool:Activate() end
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton1(Vector2.new(0, 0))
+                end)
+                task.wait(0.3)
+            end
+        end)
+    end
+end)
+
 BtnFastAim.MouseButton1Click:Connect(function()
     fastAimEnabled = not fastAimEnabled
-    BtnFastAim.Text = fastAimEnabled and "Auto Apuntado Rápido: ON" or "Auto Apuntado Rápido: OFF"
-    BtnFastAim.BackgroundColor3 = fastAimEnabled and Color3.fromRGB(230, 81, 0) or Color3.fromRGB(75, 30, 15)
-    
+    updateLed(LedFast, fastAimEnabled)
     if fastAimEnabled then
         connections.fastAim = RunService.RenderStepped:Connect(function()
             pcall(function()
                 if UserInput:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) or UserInput:IsKeyDown(Enum.KeyCode.E) then
-                    local target = getClosestPlayerToCursor()
+                    local target = getClosestPlayerToCharacter()
                     if target and target.Character and target.Character:FindFirstChild("Head") then
-                        local targetPos = target.Character.Head.Position
-                        Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPos)
+                        Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, target.Character.Head.Position)
                     end
                 end
             end)
@@ -280,97 +304,84 @@ BtnFastAim.MouseButton1Click:Connect(function()
     end
 end)
 
--- ====================================================================
--- SISTEMAS COMPLEMENTARIOS VERIFICADOS
--- ====================================================================
-
--- Auto-Regen
-BtnRegen.MouseButton1Click:Connect(function()
-    regenEnabled = not regenEnabled
-    BtnRegen.Text = regenEnabled and "Auto Regenerar Vida: ON" or "Auto Regenerar Vida: OFF"
-    BtnRegen.BackgroundColor3 = regenEnabled and Color3.fromRGB(76, 175, 80) or Color3.fromRGB(40, 60, 20)
-    
-    if regenEnabled then
-        connections.regen = RunService.Heartbeat:Connect(function()
+BtnSpeed.MouseButton1Click:Connect(function()
+    walkSpeedEnabled = not walkSpeedEnabled
+    updateLed(LedSpeed, walkSpeedEnabled)
+    if walkSpeedEnabled then
+        connections.walkSpeed = RunService.Heartbeat:Connect(function()
             pcall(function()
                 local char = LocalPlayer.Character
                 local hum = char and char:FindFirstChildOfClass("Humanoid")
-                if hum and hum.Health > 0 and hum.Health < hum.MaxHealth then
-                    hum.Health = hum.MaxHealth
-                end
+                if hum then hum.WalkSpeed = customWalkSpeed end
             end)
         end)
     else
-        if connections.regen then connections.regen:Disconnect() connections.regen = nil end
+        if connections.walkSpeed then connections.walkSpeed:Disconnect() connections.walkSpeed = nil end
+        pcall(function()
+            local char = LocalPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum then hum.WalkSpeed = 16 end
+        end)
     end
 end)
 
--- ESP Adornments
+InputSpeed.FocusLost:Connect(function(ep)
+    if ep then 
+        local v = tonumber(InputSpeed.Text) 
+        if v then 
+            customWalkSpeed = v 
+            local char = LocalPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum and walkSpeedEnabled then hum.WalkSpeed = customWalkSpeed end
+        end 
+    end
+end)
+
+-- Visualizador ESP Box
 local function cleanESP()
     for _, plr in pairs(Players:GetPlayers()) do
-        pcall(function()
-            if plr.Character then
-                local oldEsp = plr.Character:FindFirstChild("BerisBoxESP")
-                if oldEsp then oldEsp:Destroy() end
-            end
-        end)
-    end
-end
-
-local function applyInmuneESP()
-    for _, plr in pairs(Players:GetPlayers()) do
-        pcall(function()
-            if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                local char = plr.Character
-                local hrp = char.HumanoidRootPart
-                local folder = char:FindFirstChild("BerisBoxESP")
-                
-                if not folder then
-                    folder = Instance.new("Folder")
-                    folder.Name = "BerisBoxESP"
-                    folder.Parent = char
-                    
-                    local box = Instance.new("BoxHandleAdornment")
-                    box.Name = "Box"
-                    box.Color3 = Color3.fromRGB(0, 229, 255)
-                    box.Transparency = 0.65
-                    box.AlwaysOnTop = true
-                    box.ZIndex = 6
-                    box.Adornee = hrp
-                    box.Parent = folder
-                end
-                
-                if folder:FindFirstChild("Box") then
-                    folder.Box.Size = char:GetExtentsSize() + Vector3.new(0.2, 0.2, 0.2)
-                end
-            end
-        end)
+        pcall(function() if plr.Character and plr.Character:FindFirstChild("BerisBoxESP") then plr.Character.BerisBoxESP:Destroy() end end)
     end
 end
 
 BtnEsp.MouseButton1Click:Connect(function()
     espEnabled = not espEnabled
-    BtnEsp.Text = espEnabled and "Wallhack / ESP Box: ON" or "Wallhack / ESP Box: OFF"
-    BtnEsp.BackgroundColor3 = espEnabled and Color3.fromRGB(0, 150, 136) or Color3.fromRGB(48, 20, 56)
-    
+    updateLed(LedEsp, espEnabled)
     if espEnabled then
-        connections.esp = RunService.Heartbeat:Connect(applyInmuneESP)
+        connections.esp = RunService.Heartbeat:Connect(function()
+            for _, plr in pairs(Players:GetPlayers()) do
+                pcall(function()
+                    if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                        local char = plr.Character
+                        local folder = char:FindFirstChild("BerisBoxESP") or Instance.new("Folder", char)
+                        folder.Name = "BerisBoxESP"
+                        
+                        local box = folder:FindFirstChild("Box") or Instance.new("BoxHandleAdornment", folder)
+                        box.Name = "Box"
+                        box.Color3 = Color3.fromRGB(0, 240, 255)
+                        box.Transparency = 0.65
+                        box.AlwaysOnTop = true
+                        box.ZIndex = 6
+                        box.Adornee = char.HumanoidRootPart
+                        box.Size = char:GetExtentsSize() + Vector3.new(0.2, 0.2, 0.2)
+                    end
+                end)
+            end
+        end)
     else
         if connections.esp then connections.esp:Disconnect() connections.esp = nil end
         cleanESP()
     end
 end)
 
--- Aimlock Tradicional
+-- Resto de funciones mapeadas de forma limpia
 BtnAim.MouseButton1Click:Connect(function()
     aimlockEnabled = not aimlockEnabled
-    BtnAim.Text = aimlockEnabled and "Aimlock: ACTIVO [E]" or "Aimlock (Mantener E): OFF"
-    BtnAim.BackgroundColor3 = aimlockEnabled and Color3.fromRGB(200, 110, 0) or Color3.fromRGB(61, 41, 15)
-    
+    updateLed(LedAim, aimlockEnabled)
     if aimlockEnabled then
         connections.aimlock = RunService.RenderStepped:Connect(function()
             if UserInput:IsKeyDown(Enum.KeyCode.E) then
-                local target = getClosestPlayerToCursor()
+                local target = getClosestPlayerToCharacter()
                 if target and target.Character and target.Character.Head then
                     Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
                 end
@@ -381,19 +392,15 @@ BtnAim.MouseButton1Click:Connect(function()
     end
 end)
 
--- Vuelo Inmune
 BtnFly.MouseButton1Click:Connect(function()
     flyEnabled = not flyEnabled
-    BtnFly.Text = flyEnabled and "Vuelo (Fly): ON" or "Vuelo (Fly): OFF"
-    BtnFly.BackgroundColor3 = flyEnabled and Color3.fromRGB(0, 110, 180) or Color3.fromRGB(15, 48, 63)
-    
+    updateLed(LedFly, flyEnabled)
     if flyEnabled then
         connections.fly = RunService.RenderStepped:Connect(function(deltaTime)
             pcall(function()
                 local char = LocalPlayer.Character
                 local hrp = char and char:FindFirstChild("HumanoidRootPart")
                 if not hrp then return end
-                
                 local moveDirection = Vector3.zero
                 if UserInput:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + Camera.CFrame.LookVector end
                 if UserInput:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - Camera.CFrame.LookVector end
@@ -401,10 +408,7 @@ BtnFly.MouseButton1Click:Connect(function()
                 if UserInput:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + Camera.CFrame.RightVector end
                 if UserInput:IsKeyDown(Enum.KeyCode.Space) then moveDirection = moveDirection + Vector3.new(0, 1, 0) end
                 if UserInput:IsKeyDown(Enum.KeyCode.LeftShift) then moveDirection = moveDirection - Vector3.new(0, 1, 0) end
-                
-                if moveDirection.Magnitude > 0 then
-                    hrp.CFrame = hrp.CFrame + (moveDirection.Unit * flySpeed * deltaTime)
-                end
+                if moveDirection.Magnitude > 0 then hrp.CFrame = hrp.CFrame + (moveDirection.Unit * flySpeed * deltaTime) end
             end)
         end)
     else
@@ -412,32 +416,9 @@ BtnFly.MouseButton1Click:Connect(function()
     end
 end)
 
--- Salto Infinito
-BtnInfJ.MouseButton1Click:Connect(function()
-    infJumpEnabled = not infJumpEnabled
-    BtnInfJ.Text = infJumpEnabled and "Salto Infinito: ON" or "Salto Infinito: OFF"
-    BtnInfJ.BackgroundColor3 = infJumpEnabled and Color3.fromRGB(46, 125, 50) or Color3.fromRGB(35, 38, 45)
-    
-    if infJumpEnabled then
-        if not connections.infJump then
-            connections.infJump = UserInput.JumpRequest:Connect(function()
-                pcall(function()
-                    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                    if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
-                end)
-            end)
-        end
-    else
-        if connections.infJump then connections.infJump:Disconnect() connections.infJump = nil end
-    end
-end)
-
--- Noclip Desactivador
 BtnTras.MouseButton1Click:Connect(function()
     noclipEnabled = not noclipEnabled
-    BtnTras.Text = noclipEnabled and "Noclip (Atravesar): ON" or "Noclip (Atravesar): OFF"
-    BtnTras.BackgroundColor3 = noclipEnabled and Color3.fromRGB(180, 40, 40) or Color3.fromRGB(50, 22, 22)
-    
+    updateLed(LedTras, noclipEnabled)
     if noclipEnabled then
         connections.noclip = RunService.Stepped:Connect(function()
             pcall(function()
@@ -453,23 +434,34 @@ BtnTras.MouseButton1Click:Connect(function()
     end
 end)
 
--- Teletransporte y God Mode Visual
+BtnInfJ.MouseButton1Click:Connect(function()
+    infJumpEnabled = not infJumpEnabled
+    updateLed(LedInfJ, infJumpEnabled)
+    if infJumpEnabled then
+        connections.infJump = UserInput.JumpRequest:Connect(function()
+            pcall(function()
+                local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+            end)
+        end)
+    else
+        if connections.infJump then connections.infJump:Disconnect() connections.infJump = nil end
+    end
+end)
+
 BtnSaveTp.MouseButton1Click:Connect(function()
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
         savedPosition = char.HumanoidRootPart.CFrame
-        BtnSaveTp.Text = "¡Ubicación Guardada!"
-        task.wait(0.7)
-        BtnSaveTp.Text = "Guardar Ubicación TP"
+        updateLed(LedSTp, true) task.wait(0.5) updateLed(LedSTp, false)
     end
 end)
 
 BtnTp.MouseButton1Click:Connect(function()
     local char = LocalPlayer.Character
-    if char and char:FindFirstChild("HumanoidRootPart") then
-        if savedPosition then char.HumanoidRootPart.CFrame = savedPosition else
-            BtnTp.Text = "❌ Sin Datos" task.wait(1) BtnTp.Text = "Teletransportar"
-        end
+    if char and char:FindFirstChild("HumanoidRootPart") and savedPosition then
+        char.HumanoidRootPart.CFrame = savedPosition
+        updateLed(LedTp, true) task.wait(0.5) updateLed(LedTp, false)
     end
 end)
 
@@ -477,44 +469,39 @@ BtnGod.MouseButton1Click:Connect(function()
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChildOfClass("Humanoid")
     if hum then
-        hum.MaxHealth = math.huge
-        hum.Health = math.huge
-        BtnGod.Text = "¡Modo Dios Visual!"
-        task.wait(1)
-        BtnGod.Text = "God Mode (Visual)"
+        hum.MaxHealth = math.huge hum.Health = math.huge
+        updateLed(LedGod, true) task.wait(0.5) updateLed(LedGod, false)
     end
 end)
 
--- Inputs de configuración
-InputFly.FocusLost:Connect(function(ep)
-    if ep then local v = tonumber(InputFly.Text) if v then flySpeed = v end end
-end)
-
+InputFly.FocusLost:Connect(function(ep) if ep then local v = tonumber(InputFly.Text) if v then flySpeed = v end end end)
 InputMoney.FocusLost:Connect(function(ep)
     if ep then
         local ammount = tonumber(InputMoney.Text)
-        if ammount then
-            local stats = LocalPlayer:FindFirstChild("leaderstats")
-            local moneyObj = stats and (stats:FindFirstChild("Money") or stats:FindFirstChild("Cash") or stats:FindFirstChild("Coins") or stats:FindFirstChild("Gold"))
-            if moneyObj then moneyObj.Value = ammount end
-        end
+        local stats = LocalPlayer:FindFirstChild("leaderstats")
+        local mObj = stats and (stats:FindFirstChild("Money") or stats:FindFirstChild("Cash") or stats:FindFirstChild("Coins"))
+        if mObj then mObj.Value = ammount end
     end
 end)
 
--- Controles del Menú Principal
+-- ANIMACIONES DE INTERFAZ POR TWEEN SERVICE
 BtnMinimize.MouseButton1Click:Connect(function()
     isMinimised = not isMinimised
-    MainFrame.Size = isMinimised and miniSize or fullSize
+    local targetSize = isMinimised and miniSize or fullSize
     ScrollFrame.Visible = not isMinimised
-    BtnMinimize.Text = isMinimised and "+" or "−"
+    BtnMinimize.Text = isMinimised and "+" or "—"
+    TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
 end)
 
 BtnClose.MouseButton1Click:Connect(function()
+    autoFamaEnabled = false
     for _, conn in pairs(connections) do if conn then conn:Disconnect() end end
     cleanESP()
+    TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(0, 270, 0, 0)}):Play()
+    task.wait(0.2)
     ScreenGui:Destroy()
 end)
 
-UserInput.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == Enum.KeyCode.P then MainFrame.Visible = not MainFrame.Visible end
+UserInput.InputBegan:Connect(function(input, gP)
+    if not gP and input.KeyCode == Enum.KeyCode.P then MainFrame.Visible = not MainFrame.Visible end
 end)
