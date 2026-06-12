@@ -1,5 +1,5 @@
 -- HUB NAME: beris
--- Descripción: Hub con TP, TP2 y Magnet de Objetos.
+-- Optimizado para juegos de supervivencia / recolección
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -12,13 +12,13 @@ ScreenGui.Name = "BerisHub"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = PlayerGui
 
--- Crear el Marco del Menú (Frame) - Ajustado el tamaño para 3 botones
+-- Crear el Marco del Menú (Frame)
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 200, 0, 190) -- Más alto para acomodar el nuevo botón
+MainFrame.Size = UDim2.new(0, 200, 0, 190)
 MainFrame.Position = UDim2.new(0.5, -100, 0.4, -95)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.BorderSizePixel = 2
-MainFrame.BorderColor3 = Color3.fromRGB(255, 165, 0) -- Borde Naranja
+MainFrame.BorderColor3 = Color3.fromRGB(255, 165, 0)
 MainFrame.Active = true
 MainFrame.Draggable = true 
 MainFrame.Parent = ScreenGui
@@ -58,12 +58,12 @@ ButtonTP2.TextSize = 14
 ButtonTP2.Font = Enum.Font.SourceSans
 ButtonTP2.Parent = MainFrame
 
--- BOTÓN 3: Traer Objetos (Magnet)
+-- BOTÓN 3: Recoger Recursos (Optimizado)
 local ButtonBring = Instance.new("TextButton")
 ButtonBring.Size = UDim2.new(0.9, 0, 0, 35)
 ButtonBring.Position = UDim2.new(0.05, 0, 0.72, 0)
-ButtonBring.BackgroundColor3 = Color3.fromRGB(255, 100, 0) -- Color llamativo
-ButtonBring.Text = "Traer Objetos"
+ButtonBring.BackgroundColor3 = Color3.fromRGB(0, 150, 255) -- Azul eléctrico
+ButtonBring.Text = "Recoger Madera/Items"
 ButtonBring.TextColor3 = Color3.fromRGB(255, 255, 255)
 ButtonBring.TextSize = 14
 ButtonBring.Font = Enum.Font.SourceSansBold
@@ -71,7 +71,6 @@ ButtonBring.Parent = MainFrame
 
 --- LÓGICA DE LOS BOTONES ---
 
--- Función: Guardar Posición
 ButtonTP1.MouseButton1Click:Connect(function()
     local character = LocalPlayer.Character
     if character and character:FindFirstChild("HumanoidRootPart") then
@@ -82,7 +81,6 @@ ButtonTP1.MouseButton1Click:Connect(function()
     end
 end)
 
--- Función: Teletransportarse
 ButtonTP2.MouseButton1Click:Connect(function()
     local character = LocalPlayer.Character
     if character and character:FindFirstChild("HumanoidRootPart") then
@@ -96,29 +94,45 @@ ButtonTP2.MouseButton1Click:Connect(function()
     end
 end)
 
--- Función: Traer Objetos (Magnet)
+-- Nueva Lógica para 99 Noches en el Bosque (Traer/Auto-Farm)
 ButtonBring.MouseButton1Click:Connect(function()
     local character = LocalPlayer.Character
-    if character and character:FindFirstChild("HumanoidRootPart") then
-        local myPos = character.HumanoidRootPart.CFrame
-        local count = 0
-        
-        -- Busca en todo el Workspace
-        for _, object in pairs(Workspace:GetDescendants()) do
-            -- Verifica si es una herramienta (Tool) tirada en el suelo
-            if object:IsA("Tool") and not object:IsDescendantOf(Players) then
-                -- Busca la parte física principal de la herramienta (suele ser 'Handle')
-                local handle = object:FindFirstChild("Handle") or object:FindFirstChildWhichIsA("BasePart")
-                if handle then
-                    handle.CFrame = myPos
-                    count = count + 1
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+    
+    local rootPart = character.HumanoidRootPart
+    local originalPosition = rootPart.CFrame -- Guarda dónde estás parado para no perderte
+    local count = 0
+    
+    ButtonBring.Text = "Buscando recursos..."
+    
+    -- Escanea el mapa buscando carpetas comunes de recursos como "Dropped", "Items", "Debris" o "Wood"
+    -- También busca cualquier parte suelta que se llame "Wood", "Log", "Madera" o "Item"
+    for _, object in pairs(Workspace:GetDescendants()) do
+        if object:IsA("BasePart") and not object:IsDescendantOf(character) and not object:IsDescendantOf(Players) then
+            
+            -- FILTRO: Ponemos nombres comunes de los recursos de este tipo de juegos
+            local name = object.Name:lower()
+            if name:find("wood") or name:find("log") or name:find("item") or name:find("madera") or name:find("pickup") or object.Parent.Name:lower():find("dropped") then
+                
+                -- Opción A: Intentar traer el objeto a ti (si no está anclado)
+                if not object.Anchored then
+                    object.CFrame = originalPosition
+                else
+                    -- Opción B: Si está anclado, tú te teletransportas a él instantáneamente para recogerlo y vuelves
+                    rootPart.CFrame = object.CFrame + Vector3.new(0, 2, 0)
+                    task.wait(0.05) -- Espera un milisegundo para que el juego detecte que lo tocaste
                 end
+                
+                count = count + 1
+                if count >= 20 then break end -- Límite por clic para evitar que el juego te eche (Anti-Cheat)
             end
         end
-        
-        -- Mostrar cuántos objetos se trajeron
-        ButtonBring.Text = "¡Traídos: " .. count .. " objetos!"
-        task.wait(1.5)
-        ButtonBring.Text = "Traer Objetos"
     end
+    
+    -- Regresar a la posición original seguro
+    rootPart.CFrame = originalPosition
+    
+    ButtonBring.Text = "¡Procesados: " .. count .. "!"
+    task.wait(1.5)
+    ButtonBring.Text = "Recoger Madera/Items"
 end)
