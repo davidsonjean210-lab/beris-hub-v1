@@ -1,76 +1,104 @@
--- [[ 99 Nights in the Forest - Auto-Farm Base ]]
-local Players = game:GetService("Players")
-local VirtualUser = game:GetService("VirtualUser")
-local LocalPlayer = Players.LocalPlayer
+-- [[ EXTRACTOR DE NOMBRES DE RECURSOS - 99 NIGHTS ]]
+local Workspace = game:GetService("Workspace")
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
 
--- Configuraciones del Script
-_G.AutoFarm = true
-_G.DistanciaMaxima = 150 -- Radio de búsqueda de árboles
-
-print("Cargando módulos de optimización y farmeo...")
-
--- Antiafk para que Roblox no te saque del servidor tras 20 minutos
-LocalPlayer.Idled:Connect(function()
-    VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-    task.wait(1)
-    VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-end)
-
--- Función para equipar el hacha automáticamente si está en el inventario
-local function equiparHerramienta()
-    local character = LocalPlayer.Character
-    if character and not character:FindFirstChildOfClass("Tool") then
-        local mochila = LocalPlayer.Backpack
-        for _, tool in pairs(mochila:GetChildren()) do
-            -- Busca cualquier herramienta que sirva para talar (Axe / Chainsaw)
-            if string.find(string.lower(tool.Name), "axe") or string.find(string.lower(tool.Name), "chainsaw") then
-                tool.Parent = character
-                break
-            end
+-- 1. Escanear el mapa en busca de modelos (recursos)
+local nombresEncontrados = {}
+for _, objeto in pairs(Workspace:GetChildren()) do
+    -- Filtramos para buscar Modelos que no sean jugadores ni infraestructura básica
+    if objeto:IsA("Model") and not objeto:FindFirstChild("Humanoid") and objeto.Name ~= "Terrain" then
+        -- Verificamos si tiene partes físicas dentro
+        if objeto:FindFirstChildWhichIsA("BasePart") then
+            nombresEncontrados[objeto.Name] = true
         end
     end
 end
 
--- Bucle Principal de Auto-Farm
-task.spawn(function()
-    while _G.AutoFarm do
-        task.wait(0.5)
-        local character = LocalPlayer.Character
-        local rootPart = character and character:FindFirstChild("HumanoidRootPart")
-        
-        if rootPart then
-            equiparHerramienta()
-            
-            -- Recorremos el mapa buscando árboles o estructuras destruibles
-            for _, objeto in pairs(workspace:GetChildren()) do
-                -- El juego suele agrupar los árboles bajo nombres clave como "Tree", "BigTree" o modelos de recursos
-                if objeto:IsA("Model") and (string.find(string.lower(objeto.Name), "tree") or string.find(string.lower(objeto.Name), "scrap")) then
-                    local pPart = objeto:FindFirstChildWhichIsA("BasePart")
-                    
-                    if pPart then
-                        local distancia = (rootPart.Position - pPart.Position).Magnitude
-                        
-                        -- Si está dentro del rango establecido, vamos por él
-                        if distancia <= _G.DistanciaMaxima then
-                            -- Teletransporte seguro al lado del recurso
-                            rootPart.CFrame = pPart.CFrame * CFrame.new(0, 0, 3)
-                            task.wait(0.2)
-                            
-                            -- Simula clics continuos para golpear el árbol hasta destruirlo
-                            local herramienta = character:FindFirstChildOfClass("Tool")
-                            if herramienta then
-                                herramienta:Activate() -- Activa el hacha
-                                VirtualUser:CaptureController()
-                                VirtualUser:ClickButton1(Vector2.new(0,0)) -- Fuerza el clic en pantalla
-                            end
-                            
-                            -- Espera un momento a que caiga el recurso antes de pasar al siguiente
-                            task.wait(0.3)
-                        end
-                    end
-                end
-                if not _G.AutoFarm then break end
-            end
-        end
-    end
+-- Convertir el diccionario a una lista de texto limpia
+local textoFinal = "--- LISTA DE RECURSOS ENCONTRADOS ---\n\n"
+for nombre, _ in pairs(nombresEncontrados) do
+    textoFinal = textoFinal .. nombre .. "\n"
+end
+textoFinal = textoFinal .. "\n-----------------------------------"
+
+-- 2. Crear Interfaz Gráfica (GUI) para copiar el texto fácilmente
+-- Evita duplicar la interfaz si la ejecutas varias veces
+if CoreGui:FindFirstChild("ResourceDumperGUI") then
+    CoreGui.ResourceDumperGUI:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ResourceDumperGUI"
+ScreenGui.Parent = CoreGui
+
+-- Contenedor Principal
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 350, 0, 400)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -200)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true -- Puedes mover la ventana por la pantalla
+MainFrame.Parent = ScreenGui
+
+-- Esquinas redondeadas
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 10)
+Corner.Parent = MainFrame
+
+-- Título de la ventana
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+Title.Text = " Extractor de Recursos (Copia la lista)"
+Title.TextColor3 = Color3.fromRGB(240, 240, 240)
+Title.TextSize = 16
+Title.Font = Enum.Font.SourceSansBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = MainFrame
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 10)
+TitleCorner.Parent = Title
+
+-- Botón Cerrar (X)
+local CloseButton = Instance.new("TextButton")
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(1, -35, 0, 5)
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 14
+CloseButton.Font = Enum.Font.SourceSansBold
+CloseButton.Parent = MainFrame
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 5)
+CloseCorner.Parent = CloseButton
+
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
 end)
+
+-- Cuadro de texto editable para poder copiarlo
+local TextBox = Instance.new("TextBox")
+TextBox.Size = UDim2.new(0, 320, 0, 330)
+TextBox.Position = UDim2.new(0, 15, 0, 55)
+TextBox.BackgroundColor3 = Color3.fromRGB(20, 20, 22)
+TextBox.TextColor3 = Color3.fromRGB(180, 255, 180) -- Texto verde tipo consola
+TextBox.TextSize = 14
+TextBox.Font = Enum.Font.Code
+TextBox.Text = textoFinal
+TextBox.ClearTextOnFocus = false
+TextBox.MultiLine = true
+TextBox.ReadOnly = false -- Permitir que el usuario seleccione el texto
+TextBox.TextXAlignment = Enum.TextXAlignment.Left
+TextBox.TextYAlignment = Enum.TextYAlignment.Top
+TextBox.Parent = MainFrame
+
+local TextCorner = Instance.new("UICorner")
+TextCorner.CornerRadius = UDim.new(0, 5)
+TextCorner.Parent = TextBox
+
+print("¡Escaneo finalizado! Revisa la interfaz en tu pantalla.")
