@@ -1,104 +1,75 @@
--- [[ EXTRACTOR DE NOMBRES DE RECURSOS - 99 NIGHTS ]]
-local Workspace = game:GetService("Workspace")
-local CoreGui = game:GetService("CoreGui")
-local TweenService = game:GetService("TweenService")
+--====================================================================
+-- SCRIPT: Tycoon de Clones - Operación Multimillonario
+-- Enfoque: Auto-Recoger Dinero Flotante de los Pisos Masivo
+--====================================================================
 
--- 1. Escanear el mapa en busca de modelos (recursos)
-local nombresEncontrados = {}
-for _, objeto in pairs(Workspace:GetChildren()) do
-    -- Filtramos para buscar Modelos que no sean jugadores ni infraestructura básica
-    if objeto:IsA("Model") and not objeto:FindFirstChild("Humanoid") and objeto.Name ~= "Terrain" then
-        -- Verificamos si tiene partes físicas dentro
-        if objeto:FindFirstChildWhichIsA("BasePart") then
-            nombresEncontrados[objeto.Name] = true
+_G.AutoRecogerDinero = true -- true para encender, false para apagar
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+-- Buscar la central de eventos remotos del Tycoon
+local Remotes = ReplicatedStorage:FindFirstChild("RemoteEvents") or ReplicatedStorage:FindFirstChild("Remotes") or ReplicatedStorage
+
+-- Función para buscar los sacos de dinero o botones de "Recoger" en los pisos
+local function buscarBotonesDeDinero(parent)
+    local botones = {}
+    for _, objeto in ipairs(parent:GetChildren()) do
+        -- Buscamos partes interactivas que tengan nombres relacionados con dinero, recoger, drop o cash
+        if objeto:IsA("BasePart") or objeto:IsA("Model") then
+            local name = objeto.Name:lower()
+            
+            -- Filtramos los objetos flotantes de dinero (drops/recogibles)
+            if name:find("drop") or name:find("cash") or name:find("money") or name:find("recoger") or name:find("collect") or name:find("saco") then
+                if objeto:IsA("Model") then
+                    local part = objeto.PrimaryPart or objeto:FindFirstChildWhichIsA("BasePart")
+                    if part then table.insert(botones, part) end
+                else
+                    table.insert(botones, objeto)
+                end
+            end
+        end
+        
+        -- Escaneo recursivo por si los clones o los drops están metidos en carpetas por pisos ("pisos")
+        if #objeto:GetChildren() > 0 then
+            for _, subBotone in ipairs(buscarBotonesDeDinero(objeto)) do
+                table.insert(botones, subBotone)
+            end
         end
     end
+    return botones
 end
 
--- Convertir el diccionario a una lista de texto limpia
-local textoFinal = "--- LISTA DE RECURSOS ENCONTRADOS ---\n\n"
-for nombre, _ in pairs(nombresEncontrados) do
-    textoFinal = textoFinal .. nombre .. "\n"
-end
-textoFinal = textoFinal .. "\n-----------------------------------"
-
--- 2. Crear Interfaz Gráfica (GUI) para copiar el texto fácilmente
--- Evita duplicar la interfaz si la ejecutas varias veces
-if CoreGui:FindFirstChild("ResourceDumperGUI") then
-    CoreGui.ResourceDumperGUI:Destroy()
-end
-
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ResourceDumperGUI"
-ScreenGui.Parent = CoreGui
-
--- Contenedor Principal
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 350, 0, 400)
-MainFrame.Position = UDim2.new(0.5, -175, 0.5, -200)
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true -- Puedes mover la ventana por la pantalla
-MainFrame.Parent = ScreenGui
-
--- Esquinas redondeadas
-local Corner = Instance.new("UICorner")
-Corner.CornerRadius = UDim.new(0, 10)
-Corner.Parent = MainFrame
-
--- Título de la ventana
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
-Title.Text = " Extractor de Recursos (Copia la lista)"
-Title.TextColor3 = Color3.fromRGB(240, 240, 240)
-Title.TextSize = 16
-Title.Font = Enum.Font.SourceSansBold
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = MainFrame
-
-local TitleCorner = Instance.new("UICorner")
-TitleCorner.CornerRadius = UDim.new(0, 10)
-TitleCorner.Parent = Title
-
--- Botón Cerrar (X)
-local CloseButton = Instance.new("TextButton")
-CloseButton.Size = UDim2.new(0, 30, 0, 30)
-CloseButton.Position = UDim2.new(1, -35, 0, 5)
-CloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-CloseButton.Text = "X"
-CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseButton.TextSize = 14
-CloseButton.Font = Enum.Font.SourceSansBold
-CloseButton.Parent = MainFrame
-
-local CloseCorner = Instance.new("UICorner")
-CloseCorner.CornerRadius = UDim.new(0, 5)
-CloseCorner.Parent = CloseButton
-
-CloseButton.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
+-- BUCLE PRINCIPAL: Absorción instantánea de todas las ganancias del piso
+task.spawn(function()
+    while true do
+        task.wait(0.5) -- Revisa el piso dos veces por segundo para recolectar lo nuevo
+        
+        if _G.AutoRecogerDinero and LocalPlayer.Character then
+            -- Escaneamos todo el Workspace, enfocándonos en carpetas comunes de Tycoons (Drops, Tycoons, Map)
+            local dineroEnPantalla = buscarBotonesDeDinero(Workspace)
+            
+            for _, fianza in ipairs(dineroEnPantalla) do
+                if not _G.AutoRecogerDinero then break end
+                
+                pcall(function()
+                    -- Intentamos activar la recolección simulando el click o el trigger del servidor
+                    -- Los Tycoons suelen usar eventos llamados 'Claim', 'Collect', 'Pickup' o 'Interact'
+                    local remoteEvent = Remotes:FindFirstChild("Collect") or Remotes:FindFirstChild("Pickup") or Remotes:FindFirstChild("Claim") or Remotes:FindFirstChild("Interact")
+                    
+                    if remoteEvent then
+                        remoteEvent:FireServer(fianza)
+                    else
+                        -- Si el juego usa proximidad física (ProximityPrompts) para recoger, las activa al instante
+                        local prompt = fianza:FindFirstChildOfClass("ProximityPrompt") or fianza.Parent:FindFirstChildOfClass("ProximityPrompt")
+                        if prompt then
+                            fireproximityprompt(prompt)
+                        end
+                    end
+                end)
+            end
+        end
+    end
 end)
-
--- Cuadro de texto editable para poder copiarlo
-local TextBox = Instance.new("TextBox")
-TextBox.Size = UDim2.new(0, 320, 0, 330)
-TextBox.Position = UDim2.new(0, 15, 0, 55)
-TextBox.BackgroundColor3 = Color3.fromRGB(20, 20, 22)
-TextBox.TextColor3 = Color3.fromRGB(180, 255, 180) -- Texto verde tipo consola
-TextBox.TextSize = 14
-TextBox.Font = Enum.Font.Code
-TextBox.Text = textoFinal
-TextBox.ClearTextOnFocus = false
-TextBox.MultiLine = true
-TextBox.ReadOnly = false -- Permitir que el usuario seleccione el texto
-TextBox.TextXAlignment = Enum.TextXAlignment.Left
-TextBox.TextYAlignment = Enum.TextYAlignment.Top
-TextBox.Parent = MainFrame
-
-local TextCorner = Instance.new("UICorner")
-TextCorner.CornerRadius = UDim.new(0, 5)
-TextCorner.Parent = TextBox
-
-print("¡Escaneo finalizado! Revisa la interfaz en tu pantalla.")
