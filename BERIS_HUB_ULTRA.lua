@@ -1,15 +1,16 @@
 --====================================================================
 -- HUB NAME: beris
--- Motor: Teletransporte Físico + Panel Anti-Lag Especial Móvil
+-- Motor: Emulación de Imán de Recolección Automática de 25 Robux
 --====================================================================
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Limpiador de interfaz para evitar clones
+-- Limpiador de interfaz para evitar clones en la pantalla del celular
 if PlayerGui:FindFirstChild("BerisHubTycoon") then
     PlayerGui.BerisHubTycoon:Destroy()
 end
@@ -20,7 +21,7 @@ ScreenGui.Name = "BerisHubTycoon"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = PlayerGui
 
--- Marco Principal Estilizado (Ajustado de tamaño para dos opciones)
+-- Marco Principal Estilizado
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 210, 0, 215)
 MainFrame.Position = UDim2.new(0.35, 0, 0.3, 0)
@@ -70,7 +71,7 @@ StatusLabel.Font = Enum.Font.Gotham
 StatusLabel.Parent = MainFrame
 
 -- Variables de control globales
-_G.AutoRecogerDinero = false
+_G.AutoImanMagnet = false
 _G.AntiLagEnabled = false
 
 -- Constructor de Botones
@@ -93,24 +94,24 @@ local function crearBoton(texto, posY, colorBase)
 end
 
 -- Creación de Botones Visuales
-local ButtonToggle = crearBoton("Auto-Recoger: OFF", 50, Color3.fromRGB(45, 45, 55))
+local ButtonMagnet = crearBoton("🧲 Imán Automático: OFF", 50, Color3.fromRGB(45, 45, 55))
 local ButtonLag = crearBoton("Modo Anti-Lag: OFF", 100, Color3.fromRGB(45, 45, 55))
 
--- LÓGICA 1: INTERRUPTOR AUTO-RECOGER (TELEPORT)
-ButtonToggle.MouseButton1Click:Connect(function()
-    _G.AutoRecogerDinero = not _G.AutoRecogerDinero
-    if _G.AutoRecogerDinero then
-        ButtonToggle.Text = "Auto-Recoger: ON"
-        ButtonToggle.BackgroundColor3 = Color3.fromRGB(46, 139, 87) -- Verde
-        StatusLabel.Text = "Estado: Recolectando clones..."
+-- LÓGICA 1: EMULADOR DEL IMÁN DE ROBUX (RECOLECCIÓN REMOTA)
+ButtonMagnet.MouseButton1Click:Connect(function()
+    _G.AutoImanMagnet = not _G.AutoImanMagnet
+    if _G.AutoImanMagnet then
+        ButtonMagnet.Text = "🧲 Imán Automático: ON"
+        ButtonMagnet.BackgroundColor3 = Color3.fromRGB(46, 139, 87) -- Verde
+        StatusLabel.Text = "Estado: Imán activado (Gratis)"
     else
-        ButtonToggle.Text = "Auto-Recoger: OFF"
-        ButtonToggle.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+        ButtonMagnet.Text = "🧲 Imán Automático: OFF"
+        ButtonMagnet.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
         StatusLabel.Text = "Estado: Pausado"
     end
 end)
 
--- LÓGICA 2: INTERRUPTOR ANTI-LAG (OPTIMIZADOR GRÁFICO)
+-- LÓGICA 2: OPTIMIZADOR GRÁFICO ANTI-LAG
 ButtonLag.MouseButton1Click:Connect(function()
     _G.AntiLagEnabled = not _G.AntiLagEnabled
     if _G.AntiLagEnabled then
@@ -118,19 +119,17 @@ ButtonLag.MouseButton1Click:Connect(function()
         ButtonLag.BackgroundColor3 = Color3.fromRGB(46, 139, 87)
         StatusLabel.Text = "Estado: Gráficos optimizados"
         
-        -- Ejecutar limpieza agresiva de rendimiento
         pcall(function()
             settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
             Lighting.GlobalShadows = false
-            Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
             
             for _, v in pairs(Workspace:GetDescendants()) do
                 if v:IsA("Texture") or v:IsA("Decal") then
-                    v.Texture = "" -- Remueve texturas pesadas del suelo/paredes
+                    v.Texture = ""
                 elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Sparkles") then
-                    v.Enabled = false -- Apaga fuegos, brillos o destellos molestos
+                    v.Enabled = false
                 elseif v:IsA("BasePart") and not v.Parent:FindFirstChildOfClass("Humanoid") then
-                    v.Material = Enum.Material.SmoothPlastic -- Convierte bloques en plástico liso para ahorrar memoria
+                    v.Material = Enum.Material.SmoothPlastic
                 end
             end
         end)
@@ -141,50 +140,34 @@ ButtonLag.MouseButton1Click:Connect(function()
     end
 end)
 
--- BUCLE DE ABSORCIÓN POR MOVIMIENTO ULTRA RÁPIDO
+-- BUCLE CENTRAL: RECOLECCIÓN REMOTA POR EMULACIÓN DE SERVIDOR
 task.spawn(function()
     while true do
-        task.wait(0.4)
+        task.wait(0.3) -- Recolecta todo de golpe 3 veces por segundo sin moverse
         
-        local char = LocalPlayer.Character
-        if _G.AutoRecogerDinero and char and char:FindFirstChild("HumanoidRootPart") then
-            local rootPart = char.HumanoidRootPart
-            local posicionOriginal = rootPart.CFrame
-            
-            local todosLosObjetos = Workspace:GetDescendants()
-            local clonesListos = {}
-            
-            for i = 1, #todosLosObjetos do
-                local v = todosLosObjetos[i]
-                if v:IsA("BillboardGui") then
-                    local textLabel = v:FindFirstChildOfClass("TextLabel") or v:FindFirstChildWhichIsA("TextLabel")
-                    
-                    if textLabel and textLabel.Text then
-                        local texto = textLabel.Text:lower()
-                        
-                        -- Filtro estricto: Debe decir Recoger y NO costar Robux
-                        if texto:find("recoger") and not texto:find("robux") and not texto:find("saltar") and not texto:find("skip") then
-                            local parteFisica = v.Adornee or v.Parent
-                            if parteFisica and parteFisica:IsA("BasePart") then
-                                table.insert(clonesListos, parteFisica)
+        if _G.AutoImanMagnet and LocalPlayer.Character then
+            pcall(function()
+                -- 1. Buscamos la carpeta de eventos remotos del juego
+                local Remotes = ReplicatedStorage:FindFirstChild("RemoteEvents") or ReplicatedStorage:FindFirstChild("Remotes") or ReplicatedStorage
+                
+                -- 2. El imán de estos Tycoons reclama el acumulado activando el evento de colectar del Tycoon asignado al jugador
+                local collectRemote = Remotes:FindFirstChild("Collect") or Remotes:FindFirstChild("CollectCash") or Remotes:FindFirstChild("Claim") or Remotes:FindFirstChild("Reward")
+                
+                if collectRemote and collectRemote:IsA("RemoteEvent") then
+                    -- Ejecuta la recolección automática masiva directo en el servidor
+                    collectRemote:FireServer()
+                else
+                    -- 3. Si el juego requiere enviar el objeto como argumento (como en CpsHub), le enviamos los contenedores de dinero detectados
+                    for _, obj in ipairs(Workspace:GetDescendants()) do
+                        if obj:IsA("BasePart") and (obj.Name:lower():find("cash") or obj.Name:lower():find("money") or obj.Name:lower():find("drop")) then
+                            local event = Remotes:FindFirstChild("Collect") or Remotes:FindFirstChild("Pickup")
+                            if event then
+                                event:FireServer(obj)
                             end
                         end
                     end
                 end
-            end
-            
-            -- Salto físico en ráfaga sobre las coordenadas del Tycoon
-            if #clonesListos > 0 then
-                for _, clonPart in ipairs(clonesListos) do
-                    if not _G.AutoRecogerDinero then break end
-                    pcall(function()
-                        rootPart.CFrame = clonPart.CFrame + Vector3.new(0, 2, 0)
-                    end)
-                    task.wait(0.02)
-                end
-                rootPart.CFrame = posicionOriginal
-            end
-            
+            end)
         end
     end
 end)
