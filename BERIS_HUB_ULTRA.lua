@@ -1,11 +1,10 @@
 --====================================================================
 -- HUB NAME: beris
--- Motor: Emulación de Imán de Recolección Automática de 25 Robux
+-- Motor V4: Imán de Absorción Total por Escaneo de Componentes
 --====================================================================
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -97,13 +96,13 @@ end
 local ButtonMagnet = crearBoton("🧲 Imán Automático: OFF", 50, Color3.fromRGB(45, 45, 55))
 local ButtonLag = crearBoton("Modo Anti-Lag: OFF", 100, Color3.fromRGB(45, 45, 55))
 
--- LÓGICA 1: EMULADOR DEL IMÁN DE ROBUX (RECOLECCIÓN REMOTA)
+-- LÓGICA 1: INTERRUPTOR DEL IMÁN DE RECOLECCIÓN
 ButtonMagnet.MouseButton1Click:Connect(function()
     _G.AutoImanMagnet = not _G.AutoImanMagnet
     if _G.AutoImanMagnet then
         ButtonMagnet.Text = "🧲 Imán Automático: ON"
         ButtonMagnet.BackgroundColor3 = Color3.fromRGB(46, 139, 87) -- Verde
-        StatusLabel.Text = "Estado: Imán activado (Gratis)"
+        StatusLabel.Text = "Estado: Imán activado masivo"
     else
         ButtonMagnet.Text = "🧲 Imán Automático: OFF"
         ButtonMagnet.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
@@ -140,34 +139,59 @@ ButtonLag.MouseButton1Click:Connect(function()
     end
 end)
 
--- BUCLE CENTRAL: RECOLECCIÓN REMOTA POR EMULACIÓN DE SERVIDOR
+-- BUCLE PRINCIPAL: SIMULACIÓN DE IMÁN TOTAL POR RED
 task.spawn(function()
     while true do
-        task.wait(0.3) -- Recolecta todo de golpe 3 veces por segundo sin moverse
+        task.wait(0.5) -- Ciclo estable para recolectar las filas sin colapsar el móvil
         
-        if _G.AutoImanMagnet and LocalPlayer.Character then
-            pcall(function()
-                -- 1. Buscamos la carpeta de eventos remotos del juego
-                local Remotes = ReplicatedStorage:FindFirstChild("RemoteEvents") or ReplicatedStorage:FindFirstChild("Remotes") or ReplicatedStorage
+        local character = LocalPlayer.Character
+        local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+        
+        if _G.AutoImanMagnet and rootPart then
+            local todosLosObjetos = Workspace:GetDescendants()
+            
+            for i = 1, #todosLosObjetos do
+                if not _G.AutoImanMagnet then break end
                 
-                -- 2. El imán de estos Tycoons reclama el acumulado activando el evento de colectar del Tycoon asignado al jugador
-                local collectRemote = Remotes:FindFirstChild("Collect") or Remotes:FindFirstChild("CollectCash") or Remotes:FindFirstChild("Claim") or Remotes:FindFirstChild("Reward")
-                
-                if collectRemote and collectRemote:IsA("RemoteEvent") then
-                    -- Ejecuta la recolección automática masiva directo en el servidor
-                    collectRemote:FireServer()
-                else
-                    -- 3. Si el juego requiere enviar el objeto como argumento (como en CpsHub), le enviamos los contenedores de dinero detectados
-                    for _, obj in ipairs(Workspace:GetDescendants()) do
-                        if obj:IsA("BasePart") and (obj.Name:lower():find("cash") or obj.Name:lower():find("money") or obj.Name:lower():find("drop")) then
-                            local event = Remotes:FindFirstChild("Collect") or Remotes:FindFirstChild("Pickup")
-                            if event then
-                                event:FireServer(obj)
+                local v = todosLosObjetos[i]
+                -- Buscamos los carteles de "Recoger" en el mapa
+                if v:IsA("BillboardGui") then
+                    local textLabel = v:FindFirstChildOfClass("TextLabel") or v:FindFirstChildWhichIsA("TextLabel")
+                    
+                    if textLabel and textLabel.Text then
+                        local texto = textLabel.Text:lower()
+                        
+                        -- Filtro estricto para asegurar que es dinero y no compras de Robux
+                        if texto:find("recoger") and not texto:find("robux") and not texto:find("saltar") and not texto:find("skip") then
+                            
+                            -- Obtenemos el modelo completo del clon (o el contenedor donde está el sensor)
+                            local modeloContenedor = v.Parent
+                            if modeloContenedor then
+                                
+                                pcall(function()
+                                    -- ¡EL SECRETO DEL IMÁN!: Extraemos todas las piezas físicas de ese clon
+                                    local piezas = modeloContenedor:GetDescendants()
+                                    
+                                    for j = 1, #piezas do
+                                        local parteCuerpo = piezas[j]
+                                        if parteCuerpo:IsA("BasePart") then
+                                            
+                                            -- Forzamos la colisión física simulada en cada milímetro del objeto
+                                            local fireTouch = firetouchinterest or txtouchinterest
+                                            if fireTouch then
+                                                fireTouch(rootPart, parteCuerpo, 0) -- Conectar toque
+                                                fireTouch(rootPart, parteCuerpo, 1) -- Soltar toque
+                                            end
+                                            
+                                        end
+                                    end
+                                end)
+                                
                             end
                         end
                     end
                 end
-            end)
+            end
         end
     end
 end)
