@@ -1,16 +1,15 @@
 --====================================================================
 -- HUB NAME: beris
--- Motor V6: Recolección Fantasma (Bypass Anti-Cheat del Servidor)
+-- Motor V7: Auto-Ruta Terrestre (Pisar las bases a supervelocidad)
 --====================================================================
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
-local Camera = Workspace.CurrentCamera
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Limpieza de interfaz
+-- Limpieza de interfaz en pantalla
 if PlayerGui:FindFirstChild("BerisHubTycoon") then
     PlayerGui.BerisHubTycoon:Destroy()
 end
@@ -64,7 +63,7 @@ local StatusLabel = Instance.new("TextLabel")
 StatusLabel.Size = UDim2.new(1, 0, 0, 20)
 StatusLabel.Position = UDim2.new(0, 0, 1, -22)
 StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = "Estado: Listo"
+StatusLabel.Text = "Estado: Esperando..."
 StatusLabel.TextColor3 = Color3.fromRGB(130, 135, 145)
 StatusLabel.TextSize = 11
 StatusLabel.Font = Enum.Font.Gotham
@@ -93,20 +92,20 @@ local function crearBoton(texto, posY, colorBase)
     return btn
 end
 
-local ButtonMagnet = crearBoton("🧲 Imán Automático: OFF", 50, Color3.fromRGB(45, 45, 55))
+local ButtonMagnet = crearBoton("⚡ Flash Recolector: OFF", 50, Color3.fromRGB(45, 45, 55))
 local ButtonLag = crearBoton("Modo Anti-Lag: OFF", 100, Color3.fromRGB(45, 45, 55))
 
 -- LÓGICA DE BOTONES
 ButtonMagnet.MouseButton1Click:Connect(function()
     _G.AutoImanMagnet = not _G.AutoImanMagnet
     if _G.AutoImanMagnet then
-        ButtonMagnet.Text = "🧲 Imán Automático: ON"
+        ButtonMagnet.Text = "⚡ Flash Recolector: ON"
         ButtonMagnet.BackgroundColor3 = Color3.fromRGB(46, 139, 87)
-        StatusLabel.Text = "Recolectando en secreto..."
+        StatusLabel.Text = "Pista: Quédate en el piso del Tycoon"
     else
-        ButtonMagnet.Text = "🧲 Imán Automático: OFF"
+        ButtonMagnet.Text = "⚡ Flash Recolector: OFF"
         ButtonMagnet.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-        StatusLabel.Text = "Pausado"
+        StatusLabel.Text = "Ruta pausada"
     end
 end)
 
@@ -126,18 +125,22 @@ ButtonLag.MouseButton1Click:Connect(function()
 end)
 
 --====================================================================
--- MOTOR CENTRAL: TELETRANSPORTE FANTASMA (ANTI-LAG Y ANTI-CHEAT)
+-- MOTOR CENTRAL: AUTO-RUTA TERRESTRE
 --====================================================================
 task.spawn(function()
     while true do
-        task.wait(1) -- Escanea cada 1 segundo para no sobrecargar el celular
+        task.wait(1.5) -- Pausa entre cada recolección masiva para no causar lag
         
         local char = LocalPlayer.Character
         if _G.AutoImanMagnet and char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
             local hrp = char.HumanoidRootPart
-            local originalCFrame = hrp.CFrame
+            local humanoid = char.Humanoid
             
-            -- Recopilar todos los clones con dinero
+            -- Guardamos tu altura actual en el suelo para no hacerte volar
+            local nivelDelSueloY = hrp.Position.Y
+            local posicionOriginal = hrp.CFrame
+            
+            -- Recopilar todos los carteles de dinero
             local clonesListos = {}
             for _, v in pairs(Workspace:GetDescendants()) do
                 if v:IsA("BillboardGui") then
@@ -154,33 +157,28 @@ task.spawn(function()
                 end
             end
             
-            -- Iniciar la recolección fantasma si hay dinero
+            -- Ejecutar la ruta a supervelocidad por el suelo
             if #clonesListos > 0 then
-                -- 1. Creamos un punto de anclaje visual (Para que la cámara no se vuelva loca)
-                local anclaCamara = Instance.new("Part")
-                anclaCamara.Transparency = 1
-                anclaCamara.Anchored = true
-                anclaCamara.CFrame = hrp.CFrame
-                anclaCamara.Parent = Workspace
+                StatusLabel.Text = "Recolectando " .. #clonesListos .. " clones..."
                 
-                -- 2. Fijamos la cámara a este punto invisible
-                Camera.CameraSubject = anclaCamara
-                
-                -- 3. Teletransportamos físicamente el cuerpo rápido a cada clon
                 for _, clon in ipairs(clonesListos) do
                     if not _G.AutoImanMagnet then break end
+                    
                     pcall(function()
-                        hrp.CFrame = clon.CFrame
+                        -- Te movemos a la coordenada X y Z del clon, pero manteniendo tu nivel del piso (Y)
+                        local targetX = clon.Position.X
+                        local targetZ = clon.Position.Z
+                        
+                        hrp.CFrame = CFrame.new(targetX, nivelDelSueloY, targetZ)
                     end)
-                    task.wait(0.05) -- El tiempo perfecto para que el servidor diga "Okay, es válido"
+                    
+                    -- Micro-pausa para asegurar que el servidor registre que pisaste ese lugar
+                    task.wait(0.03) 
                 end
                 
-                -- 4. Regresamos el cuerpo a donde estabas originalmente
-                hrp.CFrame = originalCFrame
-                
-                -- 5. Le devolvemos la cámara a tu personaje
-                Camera.CameraSubject = char.Humanoid
-                anclaCamara:Destroy()
+                -- Al terminar, te devuelve a tu lugar original
+                hrp.CFrame = posicionOriginal
+                StatusLabel.Text = "Esperando nueva ganancia..."
             end
         end
     end
