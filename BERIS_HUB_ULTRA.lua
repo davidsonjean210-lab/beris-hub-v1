@@ -1,6 +1,6 @@
 --====================================================================
--- HUB NAME: beris hub (Versión Cyber-Glow Premium v4)
--- Características: Minimizar Menú, Saltos Infinitos, Filtro NPC, Anti-Lag
+-- HUB NAME: beris hub (Versión Cyber-Glow Premium v5)
+-- Correcciones: Reset de ESP, Retorno Seguro, Aura Daño NPC y GodMode Real
 --====================================================================
 
 local Players = game:GetService("Players")
@@ -23,20 +23,20 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = PlayerGui
 
 -- ==========================================
--- DISEÑO: INTERFAZ MINIMIZADA (BOTÓN FLOTANTE)
+-- DISEÑO: BOTÓN FLOTANTE (MINIMIZAR)
 -- ==========================================
 local OpenButton = Instance.new("TextButton")
 OpenButton.Size = UDim2.new(0, 45, 0, 45)
-OpenButton.Position = UDim2.new(0.05, 0, 0.2, 0) -- Aparece discretamente a la izquierda
+OpenButton.Position = UDim2.new(0.05, 0, 0.2, 0)
 OpenButton.BackgroundColor3 = Color3.fromRGB(11, 12, 15)
 OpenButton.BorderSizePixel = 0
 OpenButton.Text = "b"
 OpenButton.TextColor3 = Color3.fromRGB(118, 60, 230)
 OpenButton.TextSize = 22
 OpenButton.Font = Enum.Font.GothamBold
-OpenButton.Visible = false -- Oculto por defecto hasta que minimices
+OpenButton.Visible = false
 OpenButton.Active = true
-OpenButton.Draggable = true -- Lo puedes mover con el dedo si te estorba
+OpenButton.Draggable = true
 OpenButton.Parent = ScreenGui
 
 local OpenCorner = Instance.new("UICorner")
@@ -70,18 +70,16 @@ UIStroke.Thickness = 1.5
 UIStroke.Transparency = 0.2
 UIStroke.Parent = MainFrame
 
--- Título del Menú
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0.8, 0, 0, 42)
 Title.BackgroundTransparency = 1
-Title.Text = "  BERIS HUB // V4 ⚡"
+Title.Text = "  BERIS HUB // V5 ⚡"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 13
 Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = MainFrame
 
--- Botón Minimizar Integrado en la Esquina Superior Derecha
 local MinimizeBtn = Instance.new("TextButton")
 MinimizeBtn.Size = UDim2.new(0, 30, 0, 30)
 MinimizeBtn.Position = UDim2.new(0.85, 0, 0, 6)
@@ -92,41 +90,40 @@ MinimizeBtn.TextSize = 18
 MinimizeBtn.Font = Enum.Font.GothamBold
 MinimizeBtn.Parent = MainFrame
 
--- Contenedor Deslizable para Botones
 local ScrollFrame = Instance.new("ScrollingFrame")
 ScrollFrame.Size = UDim2.new(0.92, 0, 0.74, 0)
 ScrollFrame.Position = UDim2.new(0.04, 0, 0, 45)
 ScrollFrame.BackgroundTransparency = 1
 ScrollFrame.BorderSizePixel = 0
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 560) -- Espacio aumentado para el nuevo botón
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 560)
 ScrollFrame.ScrollBarThickness = 3
 ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(118, 60, 230)
 ScrollFrame.Parent = MainFrame
 
--- Estado Inferior
 local StatusLabel = Instance.new("TextLabel")
 StatusLabel.Size = UDim2.new(1, 0, 0, 20)
 StatusLabel.Position = UDim2.new(0, 0, 1, -22)
 StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = " System: Ready to inject"
+StatusLabel.Text = " System: Fixes Injected"
 StatusLabel.TextColor3 = Color3.fromRGB(100, 105, 115)
 StatusLabel.TextSize = 10
 StatusLabel.Font = Enum.Font.Code
 StatusLabel.Parent = MainFrame
 
--- Variables de Estado Globales
+-- Variables de Control Actualizadas
 _G.SpeedEnabled = false
 _G.ImmuneEnabled = false
 _G.NpcOneHitEnabled = false
 _G.AntiVoidEnabled = false
 _G.AutoCollectResources = false
 _G.InfiniteJumpEnabled = false
+_G.NoclipEnabled = false
+_G.ChestEspEnabled = false
 local puntoDeRetornoMuerte = nil
 
--- Creador de Botones Menú
 local function crearBotonMenu(texto, posY)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 36)
+    btn.Size = UDim2.new(1, 0, 0, 34)
     btn.Position = UDim2.new(0, 0, 0, posY)
     btn.BackgroundColor3 = Color3.fromRGB(20, 22, 27)
     btn.BorderSizePixel = 0
@@ -139,195 +136,46 @@ local function crearBotonMenu(texto, posY)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 6)
     corner.Parent = btn
-    
     return btn
 end
 
--- ==========================================
--- INTERRUPTOR DE VISIBILIDAD (MINIMIZAR/MAXIMIZAR)
--- ==========================================
-MinimizeBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = false
-    OpenButton.Visible = true
-    StatusLabel.Text = "System: Panel Minimizado"
-end)
-
-OpenButton.MouseButton1Click:Connect(function()
-    OpenButton.Visible = false
-    MainFrame.Visible = true
-    StatusLabel.Text = "System: Panel Desplegado"
-end)
+-- Sistema de Minimizar
+MinimizeBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false; OpenButton.Visible = true end)
+OpenButton.MouseButton1Click:Connect(function() OpenButton.Visible = false; MainFrame.Visible = true end)
 
 -- ==========================================
--- LISTA DE OPCIONES DEL MENÚ MÓVIL
+-- LISTA DE OPCIONES DEL MENÚ MÓVIL (V5)
 -- ==========================================
-local BtnJump       = crearBotonMenu("🦘 Saltos Infinitos: OFF", 0)
-local BtnOneHit     = crearBotonMenu("💥 Instakill (Solo NPCs): OFF", 42)
-local BtnCollect    = crearBotonMenu("🎒 Auto-Recoger Recursos: OFF", 84)
-local BtnChestESP   = crearBotonMenu("👁️ Marcar Cofres (ESP)", 126)
-local BtnAntiFall   = crearBotonMenu("🛡️ Anti-Caída al Vacío: OFF", 168)
-local BtnAntiLag    = crearBotonMenu("⚙️ Modo Anti-Ultra Lag", 210)
-local BtnSpeed      = crearBotonMenu("⚡ Súper Velocidad: OFF", 252)
-local BtnImmune     = crearBotonMenu("🔰 Inmune a Golpes: OFF", 294)
-local BtnTP1        = crearBotonMenu("📍 Teleport Zona 1 (TP)", 336)
-local BtnTP2        = crearBotonMenu("📍 Teleport Zona 2 (TP2)", 378)
-local BtnRevive     = crearBotonMenu("🔄 Revivir Instantáneo", 420)
+local BtnNoclip      = crearBotonMenu("👻 Traspasar Paredes: OFF", 0)
+local BtnImmune      = crearBotonMenu("🔰 Inmune a Golpes: OFF", 40)
+local BtnOneHit      = crearBotonMenu("💥 Instakill Aura (NPCs): OFF", 80)
+local BtnChestESP    = crearBotonMenu("👁️ Marcar Cofres: OFF", 120)
+local BtnJump        = crearBotonMenu("🦘 Saltos Infinitos: OFF", 160)
+local BtnCollect     = crearBotonMenu("🎒 Auto-Recoger Recursos: OFF", 200)
+local BtnAntiFall    = crearBotonMenu("🛡️ Anti-Caída al Vacío: OFF", 240)
+local BtnSpeed       = crearBotonMenu("⚡ Súper Velocidad: OFF", 280)
+local BtnAntiLag     = crearBotonMenu("⚙️ Modo Anti-Ultra Lag", 320)
+local BtnTP1         = crearBotonMenu("📍 Teleport Zona 1 (TP)", 360)
+local BtnTP2         = crearBotonMenu("📍 Teleport Zona 2 (TP2)", 400)
+local BtnRevive      = crearBotonMenu("🔄 Revivir Instantáneo", 440)
 
 -- ==========================================
--- LÓGICA DE LAS NUEVAS OPCIONES
+-- CONTROLADORES CORREGIDOS
 -- ==========================================
 
--- 1. MOTOR DE SALTOS INFINITOS
-BtnJump.MouseButton1Click:Connect(function()
-    _G.InfiniteJumpEnabled = not _G.InfiniteJumpEnabled
-    if _G.InfiniteJumpEnabled then
-        BtnJump.Text = "🦘 Saltos Infinitos: ON"
-        BtnJump.BackgroundColor3 = Color3.fromRGB(118, 60, 230) -- Morado Neón activo
-        StatusLabel.Text = "System: Salto aéreo infinito desbloqueado"
+-- 1. SOLUCIÓN: TRASPASAR PAREDES
+BtnNoclip.MouseButton1Click:Connect(function()
+    _G.NoclipEnabled = not _G.NoclipEnabled
+    if _G.NoclipEnabled then
+        BtnNoclip.Text = "👻 Traspasar Paredes: ON"
+        BtnNoclip.BackgroundColor3 = Color3.fromRGB(118, 60, 230)
     else
-        BtnJump.Text = "🦘 Saltos Infinitos: OFF"
-        BtnJump.BackgroundColor3 = Color3.fromRGB(20, 22, 27)
+        BtnNoclip.Text = "👻 Traspasar Paredes: OFF"
+        BtnNoclip.BackgroundColor3 = Color3.fromRGB(20, 22, 27)
     end
 end)
 
--- Conexión de entrada táctil/salto para saltos continuos
-UserInputService.JumpRequest:Connect(function()
-    if _G.InfiniteJumpEnabled then
-        local char = LocalPlayer.Character
-        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-        end
-    end
-end)
-
--- 2. INSTAKILL FILTRADO SÓLO PARA NPCs
-BtnOneHit.MouseButton1Click:Connect(function()
-    _G.NpcOneHitEnabled = not _G.NpcOneHitEnabled
-    if _G.NpcOneHitEnabled then
-        BtnOneHit.Text = "💥 Instakill (Solo NPCs): ON"
-        BtnOneHit.BackgroundColor3 = Color3.fromRGB(118, 60, 230)
-    else
-        BtnOneHit.Text = "💥 Instakill (Solo NPCs): OFF"
-        BtnOneHit.BackgroundColor3 = Color3.fromRGB(20, 22, 27)
-    end
-end)
-
--- 3. RECOLECTOR AUTOMÁTICO DE RECURSOS (Casco, Chaleco, etc.)
-BtnCollect.MouseButton1Click:Connect(function()
-    _G.AutoCollectResources = not _G.AutoCollectResources
-    if _G.AutoCollectResources then
-        BtnCollect.Text = "🎒 Auto-Recoger Recursos: ON"
-        BtnCollect.BackgroundColor3 = Color3.fromRGB(118, 60, 230)
-    else
-        BtnCollect.Text = "🎒 Auto-Recoger Recursos: OFF"
-        BtnCollect.BackgroundColor3 = Color3.fromRGB(20, 22, 27)
-    end
-end)
-
-task.spawn(function()
-    while true do
-        task.wait(0.8)
-        local char = LocalPlayer.Character
-        if _G.AutoCollectResources and char and char:FindFirstChild("HumanoidRootPart") then
-            local root = char.HumanoidRootPart
-            for _, objeto in pairs(Workspace:GetDescendants()) do
-                if objeto:IsA("Tool") or (objeto:IsA("BasePart") and objeto.Parent:IsA("Tool")) then
-                    local nombre = objeto.Name:lower()
-                    if nombre:find("chaleco") or nombre:find("casco") or nombre:find("espada") or nombre:find("vest") or nombre:find("helmet") or nombre:find("sword") or nombre:find("armor") then
-                        pcall(function()
-                            if objeto:IsA("Tool") and objeto:FindFirstChild("Handle") then
-                                objeto.Handle.CFrame = root.CFrame
-                            elseif objeto:IsA("BasePart") then
-                                objeto.CFrame = root.CFrame
-                            end
-                        end)
-                    end
-                end
-            end
-        end
-    end
-end)
-
--- 4. ESP DE COFRES
-BtnChestESP.MouseButton1Click:Connect(function()
-    local contador = 0
-    for _, objeto in pairs(Workspace:GetDescendants()) do
-        if objeto:IsA("BasePart") and (objeto.Name:lower():find("chest") or objeto.Name:lower():find("cofre") or objeto.Name:lower():find("box")) then
-            if not objeto:FindFirstChild("BerisGlow") then
-                local adornment = Instance.new("BoxHandleAdornment")
-                adornment.Name = "BerisGlow"
-                adornment.Size = objeto.Size + Vector3.new(0.2, 0.2, 0.2)
-                adornment.AlwaysOnTop = true
-                adornment.ZIndex = 6
-                adornment.Color3 = Color3.fromRGB(255, 180, 0)
-                adornment.Transparency = 0.4
-                adornment.Adornee = objeto
-                adornment.Parent = objeto
-                contador = contador + 1
-            end
-        end
-    end
-    StatusLabel.Text = "System: " .. contador .. " cofres marcados"
-end)
-
--- 5. ANTI-CAÍDA AL VACÍO
-BtnAntiFall.MouseButton1Click:Connect(function()
-    _G.AntiVoidEnabled = not _G.AntiVoidEnabled
-    if _G.AntiVoidEnabled then
-        BtnAntiFall.Text = "🛡️ Anti-Caída al Vacío: ON"
-        BtnAntiFall.BackgroundColor3 = Color3.fromRGB(118, 60, 230)
-    else
-        BtnAntiFall.Text = "🛡️ Anti-Caída al Vacío: OFF"
-        BtnAntiFall.BackgroundColor3 = Color3.fromRGB(20, 22, 27)
-    end
-end)
-
-task.spawn(function()
-    while true do
-        task.wait(0.4)
-        if _G.AntiVoidEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local hrp = LocalPlayer.Character.HumanoidRootPart
-            if hrp.Position.Y < -30 then
-                hrp.Velocity = Vector3.new(0, 0, 0)
-                hrp.CFrame = CFrame.new(hrp.Position.X, 25, hrp.Position.Z)
-            end
-        end
-    end
-end)
-
--- 6. MODO ANTI-LAG EXTREMO
-BtnAntiLag.MouseButton1Click:Connect(function()
-    StatusLabel.Text = "System: Optimizando rendimiento..."
-    pcall(function()
-        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-        Lighting.GlobalShadows = false
-        if Lighting:FindFirstChild("Blur") then Lighting.Blur:Destroy() end
-        
-        for _, item in pairs(Workspace:GetDescendants()) do
-            if item:IsA("Texture") or item:IsA("Decal") or item:IsA("ParticleEmitter") or item:IsA("Sparkles") or item:IsA("Trail") then
-                item:Destroy()
-            elseif item:IsA("BasePart") and not item.Parent:FindFirstChildOfClass("Humanoid") then
-                item.Material = Enum.Material.SmoothPlastic
-                item.Reflectance = 0
-            end
-        end
-    end)
-    StatusLabel.Text = "System: Anti-Lag Inyectado Correctamente"
-end)
-
--- RESTO DE LOGICAS DE SOPORTE (Velocidad, Inmunidad, TPs, Revivir)
-BtnSpeed.MouseButton1Click:Connect(function()
-    _G.SpeedEnabled = not _G.SpeedEnabled
-    if _G.SpeedEnabled then
-        BtnSpeed.Text = "⚡ Súper Velocidad: ON"
-        BtnSpeed.BackgroundColor3 = Color3.fromRGB(118, 60, 230)
-    else
-        BtnSpeed.Text = "⚡ Súper Velocidad: OFF"
-        BtnSpeed.BackgroundColor3 = Color3.fromRGB(20, 22, 27)
-    end
-end)
-
+-- 2. SOLUCIÓN: INMUNE REAL A GOLPES DE ANIMALES
 BtnImmune.MouseButton1Click:Connect(function()
     _G.ImmuneEnabled = not _G.ImmuneEnabled
     if _G.ImmuneEnabled then
@@ -339,41 +187,136 @@ BtnImmune.MouseButton1Click:Connect(function()
     end
 end)
 
-BtnTP1.MouseButton1Click:Connect(function()
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, 15, 0)
+-- 3. SOLUCIÓN: INSTAKILL POR AURA CONTRA ANIMALES/NPCs
+BtnOneHit.MouseButton1Click:Connect(function()
+    _G.NpcOneHitEnabled = not _G.NpcOneHitEnabled
+    if _G.NpcOneHitEnabled then
+        BtnOneHit.Text = "💥 Instakill Aura (NPCs): ON"
+        BtnOneHit.BackgroundColor3 = Color3.fromRGB(118, 60, 230)
+    else
+        BtnOneHit.Text = "💥 Instakill Aura (NPCs): OFF"
+        BtnOneHit.BackgroundColor3 = Color3.fromRGB(20, 22, 27)
     end
 end)
 
-BtnTP2.MouseButton1Click:Connect(function()
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(80, 15, 80)
+-- 4. SOLUCIÓN: COFRES CON INTERRUPTOR APAGAR/ENCENDER REAL
+BtnChestESP.MouseButton1Click:Connect(function()
+    _G.ChestEspEnabled = not _G.ChestEspEnabled
+    if _G.ChestEspEnabled then
+        BtnChestESP.Text = "👁️ Marcar Cofres: ON"
+        BtnChestESP.BackgroundColor3 = Color3.fromRGB(118, 60, 230)
+        
+        for _, objeto in pairs(Workspace:GetDescendants()) do
+            if objeto:IsA("BasePart") and (objeto.Name:lower():find("chest") or objeto.Name:lower():find("cofre") or objeto.Name:lower():find("box")) then
+                if not objeto:FindFirstChild("BerisGlow") then
+                    local adornment = Instance.new("BoxHandleAdornment")
+                    adornment.Name = "BerisGlow"
+                    adornment.Size = objeto.Size + Vector3.new(0.3, 0.3, 0.3)
+                    adornment.AlwaysOnTop = true
+                    adornment.ZIndex = 6
+                    adornment.Color3 = Color3.fromRGB(255, 180, 0)
+                    adornment.Transparency = 0.4
+                    adornment.Adornee = objeto
+                    adornment.Parent = objeto
+                end
+            end
+        end
+    else
+        BtnChestESP.Text = "👁️ Marcar Cofres: OFF"
+        BtnChestESP.BackgroundColor3 = Color3.fromRGB(20, 22, 27)
+        -- Limpieza absoluta de marcas existentes
+        for _, objeto in pairs(Workspace:GetDescendants()) do
+            if objeto:IsA("BasePart") and objeto:FindFirstChild("BerisGlow") then
+                objeto.BerisGlow:Destroy()
+            end
+        end
     end
 end)
 
+-- 5. SOLUCIÓN: REVIVIR SIN VOLVER A MORIR
 BtnRevive.MouseButton1Click:Connect(function()
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("Humanoid") and char:FindFirstChild("HumanoidRootPart") then
         puntoDeRetornoMuerte = char.HumanoidRootPart.CFrame
         char.Humanoid.Health = 0
+        StatusLabel.Text = "System: Resucitando con seguro activo..."
     end
 end)
 
 LocalPlayer.CharacterAdded:Connect(function(newChar)
     if puntoDeRetornoMuerte then
-        local hrp = newChar:WaitForChild("HumanoidRootPart", 6)
+        local hrp = newChar:WaitForChild("HumanoidRootPart", 10)
         if hrp then
-            task.wait(0.3)
+            task.wait(1.5) -- Tiempo seguro corregido para evitar la doble muerte en móvil
             hrp.CFrame = puntoDeRetornoMuerte
             puntoDeRetornoMuerte = nil
+            StatusLabel.Text = "System: Reaparecido a salvo"
         end
     end
 end)
 
+-- Opciones estándar remanentes
+BtnJump.MouseButton1Click:Connect(function()
+    _G.InfiniteJumpEnabled = not _G.InfiniteJumpEnabled
+    BtnJump.Text = _G.InfiniteJumpEnabled and "🦘 Saltos Infinitos: ON" or "🦘 Saltos Infinitos: OFF"
+    BtnJump.BackgroundColor3 = _G.InfiniteJumpEnabled and Color3.fromRGB(118, 60, 230) or Color3.fromRGB(20, 22, 27)
+end)
+
+UserInputService.JumpRequest:Connect(function()
+    if _G.InfiniteJumpEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+
+BtnCollect.MouseButton1Click:Connect(function()
+    _G.AutoCollectResources = not _G.AutoCollectResources
+    BtnCollect.Text = _G.AutoCollectResources and "🎒 Auto-Recoger Recursos: ON" or "🎒 Auto-Recoger Recursos: OFF"
+    BtnCollect.BackgroundColor3 = _G.AutoCollectResources and Color3.fromRGB(118, 60, 230) or Color3.fromRGB(20, 22, 27)
+end)
+
+BtnAntiFall.MouseButton1Click:Connect(function()
+    _G.AntiVoidEnabled = not _G.AntiVoidEnabled
+    BtnAntiFall.Text = _G.AntiVoidEnabled and "🛡️ Anti-Caída al Vacío: ON" or "🛡️ Anti-Caída al Vacío: OFF"
+    BtnAntiFall.BackgroundColor3 = _G.AntiVoidEnabled and Color3.fromRGB(118, 60, 230) or Color3.fromRGB(20, 22, 27)
+end)
+
+BtnSpeed.MouseButton1Click:Connect(function()
+    _G.SpeedEnabled = not _G.SpeedEnabled
+    BtnSpeed.Text = _G.SpeedEnabled and "⚡ Súper Velocidad: ON" or "⚡ Súper Velocidad: OFF"
+    BtnSpeed.BackgroundColor3 = _G.SpeedEnabled and Color3.fromRGB(118, 60, 230) or Color3.fromRGB(20, 22, 27)
+end)
+
+BtnAntiLag.MouseButton1Click:Connect(function()
+    pcall(function()
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        Lighting.GlobalShadows = false
+        for _, item in pairs(Workspace:GetDescendants()) do
+            if item:IsA("Texture") or item:IsA("Decal") or item:IsA("ParticleEmitter") then item:Destroy() end
+        end
+    end)
+end)
+
+BtnTP1.MouseButton1Click:Connect(function() if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, 15, 0) end end)
+BtnTP2.MouseButton1Click:Connect(function() if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(80, 15, 80) end end)
+
+-- ==========================================
+-- BUCLES PRINCIPALES (SISTEMAS REPARADOS)
+-- ==========================================
 RunService.Stepped:Connect(function()
     local char = LocalPlayer.Character
-    if char and _G.ImmuneEnabled and not char:FindFirstChildOfClass("ForceField") then
-        Instance.new("ForceField", char)
+    if not char then return end
+    
+    -- Traspasar paredes activo continuo
+    if _G.NoclipEnabled then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = false end
+        end
+    end
+    
+    -- Inmune por bloqueo de HP forzado
+    if _G.ImmuneEnabled and char:FindFirstChildOfClass("Humanoid") then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        hum.Health = hum.MaxHealth
     end
 end)
 
@@ -381,28 +324,49 @@ task.spawn(function()
     while true do
         task.wait(0.2)
         local char = LocalPlayer.Character
-        if char then
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local root = char.HumanoidRootPart
+            
+            -- Súper velocidad continua
             if _G.SpeedEnabled and char:FindFirstChild("Humanoid") then
                 char.Humanoid.WalkSpeed = 75
             end
             
-            if _G.NpcOneHitEnabled then
-                local weapon = char:FindFirstChildOfClass("Tool")
-                if weapon and weapon:FindFirstChild("Handle") then
-                    if not weapon.Handle:FindFirstChild("BerisSecureTag") then
-                        weapon.Handle.Touched:Connect(function(hit)
-                            if _G.NpcOneHitEnabled and hit.Parent and hit.Parent:FindFirstChildOfClass("Humanoid") then
-                                local targetHum = hit.Parent:FindFirstChildOfClass("Humanoid")
-                                local targetIsPlayer = Players:GetPlayerFromCharacter(hit.Parent)
-                                if not targetIsPlayer and targetHum.Health > 0 then
-                                    targetHum.Health = 0
-                                end
-                            end
-                        end)
-                        local tag = Instance.new("BoolValue", weapon.Handle)
-                        tag.Name = "BerisSecureTag"
+            -- AUTO-RECOGER ITEMS MASIVO
+            if _G.AutoCollectResources then
+                for _, objeto in pairs(Workspace:GetDescendants()) do
+                    if objeto:IsA("Tool") or (objeto:IsA("BasePart") and objeto.Parent:IsA("Tool")) then
+                        local n = objeto.Name:lower()
+                        if n:find("chaleco") or n:find("casco") or n:find("espada") or n:find("vest") or n:find("helmet") or n:find("sword") or n:find("armor") then
+                            pcall(function()
+                                if objeto:IsA("Tool") and objeto:FindFirstChild("Handle") then objeto.Handle.CFrame = root.CFrame
+                                elseif objeto:IsA("BasePart") then objeto.CFrame = root.CFrame end
+                            </pcall>
+                        end
                     end
                 end
+            end
+            
+            -- INSTAKILL CONTRA ANIMALES/NPCs (Aura de Proximidad Inteligente)
+            if _G.NpcOneHitEnabled then
+                for _, entidad in pairs(Workspace:GetDescendants()) do
+                    if entidad:IsA("Humanoid") and entidad.Parent and entidad.Parent:FindFirstChild("HumanoidRootPart") then
+                        local targetChar = entidad.Parent
+                        -- Verificamos que esté cerca (menos de 25 metros) y que NO sea un jugador real ni tú
+                        if targetChar.Name ~= LocalPlayer.Name and not Players:GetPlayerFromCharacter(targetChar) then
+                            local distancia = (targetChar.HumanoidRootPart.Position - root.Position).Magnitude
+                            if distancia < 25 and entidad.Health > 0 then
+                                entidad.Health = 0 -- Lo destruye en el servidor automáticamente
+                            end
+                        end
+                    end
+                end
+            end
+            
+            -- ANTI-VOID
+            if _G.AntiVoidEnabled and root.Position.Y < -30 then
+                root.Velocity = Vector3.new(0, 0, 0)
+                root.CFrame = CFrame.new(root.Position.X, 25, root.Position.Z)
             end
         end
     end
