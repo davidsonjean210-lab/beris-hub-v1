@@ -1,5 +1,5 @@
 --====================================================================
--- HUB NAME: beris hub (V10 - Pistola Mágica y TP Arreglado)
+-- HUB NAME: beris hub (V11 - Munición Ilimitada y Supervivencia)
 --====================================================================
 
 local Players = game:GetService("Players")
@@ -7,9 +7,7 @@ local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 local UserInputService = game:GetService("UserInputService")
-local Debris = game:GetService("Debris")
 local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 if PlayerGui:FindFirstChild("BerisHubCyber") then
@@ -98,7 +96,7 @@ local StatusLabel = Instance.new("TextLabel")
 StatusLabel.Size = UDim2.new(1, 0, 0, 20)
 StatusLabel.Position = UDim2.new(0, 0, 1, -22)
 StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = " System: Update V10 Loaded"
+StatusLabel.Text = " System: Update V11 Loaded"
 StatusLabel.TextColor3 = Color3.fromRGB(100, 105, 115)
 StatusLabel.TextSize = 10
 StatusLabel.Font = Enum.Font.Code
@@ -114,7 +112,7 @@ _G.RepelerAnimales = false
 _G.ChestEspEnabled = false
 _G.PartsEspEnabled = false
 _G.AutoCollectResources = false
-_G.HandGunEnabled = false
+_G.InfiniteAmmoEnabled = false
 
 local function crearBotonMenu(texto, posY)
     local btn = Instance.new("TextButton")
@@ -140,7 +138,7 @@ OpenButton.MouseButton1Click:Connect(function() OpenButton.Visible = false; Main
 -- ==========================================
 -- TODOS LOS BOTONES 
 -- ==========================================
-local BtnPistola     = crearBotonMenu("🔫 Pistola Mágica (Click): OFF", 0)
+local BtnAmmo        = crearBotonMenu("🔫 Munición Ilimitada (Armas): OFF", 0)
 local BtnHitbox      = crearBotonMenu("🎯 Hitbox Animales Gigante: OFF", 40)
 local BtnRepeler     = crearBotonMenu("🛡️ Campo Repeler Animales: OFF", 80)
 local BtnTPCofre     = crearBotonMenu("🚀 TP al Cofre Más Cercano", 120)
@@ -158,47 +156,12 @@ local BtnTPArriba    = crearBotonMenu("📍 Volar 50 metros arriba", 480)
 -- LÓGICAS DE LOS BOTONES
 -- ==========================================
 
--- SISTEMA DE PISTOLA DE MANO
-BtnPistola.MouseButton1Click:Connect(function()
-    _G.HandGunEnabled = not _G.HandGunEnabled
-    BtnPistola.Text = _G.HandGunEnabled and "🔫 Pistola Mágica (Click): ON" or "🔫 Pistola Mágica (Click): OFF"
-    BtnPistola.BackgroundColor3 = _G.HandGunEnabled and Color3.fromRGB(118, 60, 230) or Color3.fromRGB(20, 22, 27)
+BtnAmmo.MouseButton1Click:Connect(function()
+    _G.InfiniteAmmoEnabled = not _G.InfiniteAmmoEnabled
+    BtnAmmo.Text = _G.InfiniteAmmoEnabled and "🔫 Munición Ilimitada (Armas): ON" or "🔫 Munición Ilimitada (Armas): OFF"
+    BtnAmmo.BackgroundColor3 = _G.InfiniteAmmoEnabled and Color3.fromRGB(118, 60, 230) or Color3.fromRGB(20, 22, 27)
 end)
 
-Mouse.Button1Down:Connect(function()
-    if _G.HandGunEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local char = LocalPlayer.Character
-        local originPos = char.HumanoidRootPart.Position
-        
-        -- Crear la bala
-        local bullet = Instance.new("Part")
-        bullet.Size = Vector3.new(0.5, 0.5, 2)
-        bullet.BrickColor = BrickColor.new("Bright yellow")
-        bullet.Material = Enum.Material.Neon
-        bullet.CanCollide = false
-        bullet.CFrame = CFrame.lookAt(originPos, Mouse.Hit.Position)
-        bullet.Parent = Workspace
-        
-        -- Darle velocidad a la bala
-        local bodyVel = Instance.new("BodyVelocity")
-        bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        bodyVel.Velocity = bullet.CFrame.LookVector * 250 -- Velocidad de la bala
-        bodyVel.Parent = bullet
-        
-        -- Detectar impactos
-        bullet.Touched:Connect(function(hit)
-            if hit.Parent and hit.Parent ~= char and hit.Parent:FindFirstChild("Humanoid") then
-                hit.Parent.Humanoid.Health = 0 -- Intenta matar instantáneamente a lo que toque
-                bullet:Destroy()
-            end
-        end)
-        
-        -- Destruir la bala después de 2 segundos para no laggear
-        Debris:AddItem(bullet, 2)
-    end
-end)
-
--- SISTEMA DE TP A COFRE MEJORADO (Filtro Anti-Fogata)
 BtnTPCofre.MouseButton1Click:Connect(function()
     local char = LocalPlayer.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
@@ -206,16 +169,13 @@ BtnTPCofre.MouseButton1Click:Connect(function()
     local cofreMasCercano = nil
     local distanciaMinima = math.huge
     
-    -- Lista negra de palabras que NO queremos que confunda con cofres
     local palabrasIgnoradas = {"fire", "fogata", "hitbox", "camp"}
     
     for _, obj in pairs(Workspace:GetDescendants()) do
         if obj:IsA("BasePart") then
             local n = obj.Name:lower()
-            -- Verificamos si parece un cofre
             if n:find("chest") or n:find("cofre") or n:find("box") then
                 local esValido = true
-                -- Comprobamos que no tenga palabras de la lista negra
                 for _, ignorada in pairs(palabrasIgnoradas) do
                     if n:find(ignorada) then
                         esValido = false
@@ -382,6 +342,21 @@ task.spawn(function()
         local char = LocalPlayer.Character
         if char and char:FindFirstChild("HumanoidRootPart") then
             local root = char.HumanoidRootPart
+            
+            -- SISTEMA DE MUNICIÓN ILIMITADA
+            if _G.InfiniteAmmoEnabled then
+                local toolEquipado = char:FindFirstChildOfClass("Tool")
+                if toolEquipado then
+                    for _, v in pairs(toolEquipado:GetDescendants()) do
+                        if v:IsA("IntValue") or v:IsA("NumberValue") then
+                            local nombre = v.Name:lower()
+                            if nombre:find("ammo") or nombre:find("clip") or nombre:find("mag") or nombre:find("bullet") then
+                                v.Value = 999
+                            end
+                        end
+                    end
+                end
+            end
             
             if _G.SpeedEnabled and char:FindFirstChild("Humanoid") then char.Humanoid.WalkSpeed = 75 end
             if _G.AntiVoidEnabled and root.Position.Y < -30 then root.Velocity = Vector3.new(0, 0, 0); root.CFrame = CFrame.new(root.Position.X, 50, root.Position.Z) end
