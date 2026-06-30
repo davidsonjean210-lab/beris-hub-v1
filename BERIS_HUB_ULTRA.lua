@@ -1,17 +1,17 @@
 -- [ BERIS HUB - KERNEL ELITE EDITION ]
--- UI Premium sin fallos de scroll / Sin inputs de vel/salto
+-- Corregido y estructurado con UI
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
 
 -- Variables Globales
 local waypointCFrame = nil
-local _G_AimbotActive = false
-local _G_MultiHit = false
+local espActivo = false
 
 -- ==========================================
--- 1. SISTEMA DE WAYPOINTS (TP1 y TP2)
+-- 1. SISTEMA DE WAYPOINTS
 -- ==========================================
 local function MarcarPosicion()
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
@@ -23,37 +23,39 @@ end
 local function TeletransportarAMarca()
     if waypointCFrame and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         LocalPlayer.Character.HumanoidRootPart.CFrame = waypointCFrame
+        print("Teletransportado a la marca.")
     end
 end
 
 -- ==========================================
--- 2. ROBO DE IDENTIDAD VISUAL (Copiar Ropa)
+-- 2. ESP (Visión a través de las paredes)
 -- ==========================================
-local function CopiarRopa(targetName)
-    local target = Players:FindFirstChild(targetName)
-    if target and target.Character then
-        local targetDesc = target.Character:WaitForChild("Humanoid"):GetAppliedDescription()
-        LocalPlayer.Character.Humanoid:ApplyDescription(targetDesc)
-    end
-end
-
--- ==========================================
--- 3. SISTEMA DE VISIÓN (ESP - Ver a todos)
--- ==========================================
-local function ActivarESP()
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-            local highlight = Instance.new("Highlight")
-            highlight.Parent = player.Character
-            highlight.FillColor = Color3.fromRGB(0, 255, 255) -- Cyan Cyberpunk
-            highlight.FillTransparency = 0.5
-            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+local function ToggleESP()
+    espActivo = not espActivo
+    if espActivo then
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "BerisESP"
+                highlight.Parent = player.Character
+                highlight.FillColor = Color3.fromRGB(0, 255, 255) -- Cyan Cyberpunk
+                highlight.FillTransparency = 0.5
+                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            end
         end
+        print("ESP Activado")
+    else
+        for _, player in pairs(Players:GetPlayers()) do
+            if player.Character and player.Character:FindFirstChild("BerisESP") then
+                player.Character.BerisESP:Destroy()
+            end
+        end
+        print("ESP Desactivado")
     end
 end
 
 -- ==========================================
--- 4. MODO DIOS (God Mode Básico FE)
+-- 3. MODO DIOS (Básico FE)
 -- ==========================================
 local function ActivarModoDios()
     local char = LocalPlayer.Character
@@ -62,30 +64,85 @@ local function ActivarModoDios()
         clone.Parent = char
         char.Humanoid:Destroy()
         workspace.CurrentCamera.CameraSubject = char
-        -- Nota: La efectividad depende de las protecciones del juego específico
+        print("Modo Dios ejecutado.")
     end
 end
 
 -- ==========================================
--- 5. AUTO-APUNTADO (Prioridad: Más Cercano)
+-- 4. INTERFAZ GRÁFICA (UI PREMIUM)
 -- ==========================================
-local function ObtenerObjetivoMasCercano()
-    local target = nil
-    local shortestDistance = math.huge
+-- Crear la pantalla principal
+local BerisHub = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local Titulo = Instance.new("TextLabel")
+local UIListLayout = Instance.new("UIListLayout")
+
+-- Configuración del Gui (Usamos CoreGui para evadir el anti-cheat básico)
+BerisHub.Name = "BerisHub"
+BerisHub.Parent = CoreGui 
+
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = BerisHub
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 25)
+MainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
+MainFrame.Size = UDim2.new(0, 220, 0, 260)
+MainFrame.Active = true
+MainFrame.Draggable = true -- Permite arrastrar la ventana por la pantalla
+
+Titulo.Name = "Titulo"
+Titulo.Parent = MainFrame
+Titulo.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+Titulo.Size = UDim2.new(1, 0, 0, 35)
+Titulo.Font = Enum.Font.GothamBold
+Titulo.Text = "BERIS HUB ELITE"
+Titulo.TextColor3 = Color3.fromRGB(0, 255, 255)
+Titulo.TextSize = 16
+
+UIListLayout.Parent = MainFrame
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 5)
+
+-- Función puente para crear botones
+local function CrearBoton(nombre, texto, funcion)
+    local btn = Instance.new("TextButton")
+    btn.Name = nombre
+    btn.Parent = MainFrame
+    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    btn.Size = UDim2.new(1, 0, 0, 40)
+    btn.Font = Enum.Font.GothamSemibold
+    btn.Text = texto
+    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.TextSize = 14
     
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local dist = (LocalPlayer.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
-            if dist < shortestDistance then
-                shortestDistance = dist
-                target = player
-            end
-        end
-    end
-    return target
+    -- Efecto hover simple
+    btn.MouseEnter:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(50, 50, 65) end)
+    btn.MouseLeave:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45) end)
+    
+    -- Conectar click a la función
+    btn.MouseButton1Click:Connect(funcion)
 end
 
--- ==========================================
--- 6. MULTI-HIT & ECONOMÍA GRATUITA
--- ==========================================
--- (Requiere intercepción de RemoteEvents específicos del juego)
+-- Espaciador
+local spacer = Instance.new("Frame")
+spacer.Parent = MainFrame
+spacer.BackgroundTransparency = 1
+spacer.Size = UDim2.new(1, 0, 0, 5)
+
+-- Conectar los botones a las funciones que ya tenías
+CrearBoton("BtnMarcar", "📍 Marcar Posición", MarcarPosicion)
+CrearBoton("BtnTP", "⚡ TP a Posición", TeletransportarAMarca)
+CrearBoton("BtnESP", "👁️ Activar/Apagar ESP", ToggleESP)
+CrearBoton("BtnGodMode", "🛡️ God Mode (Bypass)", ActivarModoDios)
+
+-- Botón maestro para cerrar y destruir el hub
+local BtnCerrar = Instance.new("TextButton")
+BtnCerrar.Parent = MainFrame
+BtnCerrar.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+BtnCerrar.Size = UDim2.new(1, 0, 0, 35)
+BtnCerrar.Font = Enum.Font.GothamBold
+BtnCerrar.Text = "Cerrar Hub"
+BtnCerrar.TextColor3 = Color3.fromRGB(255, 255, 255)
+BtnCerrar.TextSize = 14
+BtnCerrar.MouseButton1Click:Connect(function()
+    BerisHub:Destroy()
+end)
