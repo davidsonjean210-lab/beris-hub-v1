@@ -1,14 +1,20 @@
--- [ BERIS HUB - KERNEL ELITE EDITION ]
--- UI Premium sin fallos de scroll / Sin inputs de vel/salto
+-- TEST DE INYECCIÓN BERIS HUB
+local CoreGui = game:GetService("CoreGui")
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "BerisHubTest"
+ScreenGui.Parent = CoreGui -- Usamos CoreGui para evitar que el juego lo elimine
 
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 200, 0, 100)
+Frame.Position = UDim2.new(0.5, -100, 0.5, -50)
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 
--- Variables Globales
-local waypointCFrame = nil
-local _G_AimbotActive = false
-local _G_MultiHit = false
+local Label = Instance.new("TextLabel", Frame)
+Label.Size = UDim2.new(1, 0, 1, 0)
+Label.Text = "BERIS HUB CARGADO"
+Label.TextColor3 = Color3.new(1, 1, 1)
+
+print("Beris Hub: Código inyectado correctamente.")
 
 -- ==========================================
 -- 1. SISTEMA DE WAYPOINTS (TP1 y TP2)
