@@ -1,11 +1,13 @@
--- [[ BERIS HUB - ROTUBE LIFE 2 EDITION ]]
+-- [[ BERIS HUB - ROTUBE LIFE 2 (SMART TRACKER FIX) ]]
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local VirtualUser = game:GetService("VirtualUser")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
 -- Variables de Estado
 local opciones = {
@@ -112,7 +114,7 @@ local function CrearBoton(texto, color, contenedor)
     btn.BackgroundColor3 = color
     btn.Text = texto
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 14
+    btn.TextSize = 13
     btn.Font = Enum.Font.GothamSemibold
     btn.Parent = contenedor
     
@@ -123,7 +125,7 @@ local function CrearBoton(texto, color, contenedor)
     return btn
 end
 
-local BtnAutoClick = CrearBoton("Auto-Clicker (Farm Vistas): OFF", Color3.fromRGB(180, 50, 50), Contenedor)
+local BtnAutoClick = CrearBoton("Auto-Clicker (Rastreador): OFF", Color3.fromRGB(180, 50, 50), Contenedor)
 local BtnVelocidad = CrearBoton("Súper Velocidad: OFF", Color3.fromRGB(180, 50, 50), Contenedor)
 local BtnSalto = CrearBoton("Salto Infinito: OFF", Color3.fromRGB(180, 50, 50), Contenedor)
 local BtnTP1 = CrearBoton("TP: Guardar Posición", Color3.fromRGB(50, 100, 180), Contenedor)
@@ -161,7 +163,7 @@ local function ToggleBoton(btn, opcionNombre, textoBase)
     end
 end
 
-BtnAutoClick.MouseButton1Click:Connect(function() ToggleBoton(BtnAutoClick, "AutoClicker", "Auto-Clicker (Farm Vistas)") end)
+BtnAutoClick.MouseButton1Click:Connect(function() ToggleBoton(BtnAutoClick, "AutoClicker", "Auto-Clicker (Rastreador)") end)
 BtnVelocidad.MouseButton1Click:Connect(function() ToggleBoton(BtnVelocidad, "SuperVelocidad", "Súper Velocidad") end)
 BtnSalto.MouseButton1Click:Connect(function() ToggleBoton(BtnSalto, "SaltoInfinito", "Salto Infinito") end)
 
@@ -188,21 +190,60 @@ end)
 
 -- 4. FUNCIONES DE AUTOMATIZACIÓN
 
--- [[ AUTO-CLICKER ULTRA RÁPIDO PARA ROTUBE LIFE 2 ]]
--- Usa Heartbeat para ejecutar clics a la máxima velocidad del servidor (60 clics/segundo)
-RunService.Heartbeat:Connect(function()
-    if opciones.AutoClicker then
-        -- 1. Simula el clic o toque en el centro de la pantalla
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton1(Vector2.new(0, 0))
-        
-        -- 2. Activa automáticamente tu cámara/teléfono/PC si lo tienes en la mano
-        local character = LocalPlayer.Character
-        if character then
-            local herramienta = character:FindFirstChildOfClass("Tool")
-            if herramienta then
-                herramienta:Activate()
+-- [[ AUTO-CLICKER INTELIGENTE CON RASTREO Y BARRIDO MULTI-PUNTO ]]
+task.spawn(function()
+    while task.wait(0.04) do
+        if opciones.AutoClicker then
+            -- 1. Activar herramienta equipada constantemente
+            local character = LocalPlayer.Character
+            if character then
+                local herramienta = character:FindFirstChildOfClass("Tool")
+                if herramienta then
+                    herramienta:Activate()
+                end
             end
+            
+            -- 2. RASTREADOR DE BOTONES (Busca dónde está el objetivo móvil en pantalla)
+            pcall(function()
+                local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+                if playerGui then
+                    for _, gui in pairs(playerGui:GetDescendants()) do
+                        -- Detectar botones o imágenes interactivas visibles
+                        if (gui:IsA("ImageButton") or gui:IsA("TextButton")) and gui.Visible and gui.Active then
+                            -- Evitar hacer clic en nuestro propio menú Beris Hub
+                            if not gui:IsDescendantOf(ScreenGui) then
+                                local posX = gui.AbsolutePosition.X + (gui.AbsoluteSize.X / 2)
+                                local posY = gui.AbsolutePosition.Y + (gui.AbsoluteSize.Y / 2)
+                                
+                                -- Tocar exactamente las coordenadas donde se movió el botón
+                                VirtualInputManager:SendMouseButtonEvent(posX, posY, 0, true, game, 0)
+                                task.wait()
+                                VirtualInputManager:SendMouseButtonEvent(posX, posY, 0, false, game, 0)
+                            end
+                        end
+                    end
+                end
+            end)
+            
+            -- 3. BARRIDO DE PANTALLA (Por si el objetivo no es un botón GUI tradicional)
+            pcall(function()
+                local sizeX = Camera.ViewportSize.X
+                local sizeY = Camera.ViewportSize.Y
+                
+                -- Puntos clave donde suele moverse la barra o el objetivo
+                local puntos = {
+                    Vector2.new(sizeX * 0.5, sizeY * 0.5), -- Centro
+                    Vector2.new(sizeX * 0.35, sizeY * 0.5), -- Izquierda
+                    Vector2.new(sizeX * 0.65, sizeY * 0.5), -- Derecha
+                    Vector2.new(sizeX * 0.5, sizeY * 0.35), -- Arriba
+                    Vector2.new(sizeX * 0.5, sizeY * 0.65)  -- Abajo
+                }
+                
+                for _, pt in pairs(puntos) do
+                    VirtualInputManager:SendMouseButtonEvent(pt.X, pt.Y, 0, true, game, 0)
+                    VirtualInputManager:SendMouseButtonEvent(pt.X, pt.Y, 0, false, game, 0)
+                end
+            end)
         end
     end
 end)
@@ -235,4 +276,4 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
-print("Beris Hub - RoTube Life 2 cargado con Auto-Clicker de alta velocidad.")
+print("Beris Hub - Rastreador Inteligente Cargado.")
