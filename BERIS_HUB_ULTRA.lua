@@ -1,9 +1,8 @@
--- [[ BERIS HUB - ROTUBE LIFE 2 (SMART TRACKER FIX) ]]
+-- [[ BERIS HUB - ROTUBE LIFE 2 (AUTO-FOTO PERFECTA / MINIJUEGO QTE) ]]
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local VirtualUser = game:GetService("VirtualUser")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local LocalPlayer = Players.LocalPlayer
@@ -13,10 +12,11 @@ local Camera = workspace.CurrentCamera
 local opciones = {
     SuperVelocidad = false,
     SaltoInfinito = false,
-    AutoClicker = false
+    AutoFotoPerfecta = false
 }
 local posicionGuardada = nil
 local VELOCIDAD_EXTRA = 60
+local ultimoClicTime = 0 -- Evita hacer doble clic en una misma foto
 
 -- 1. Crear la Interfaz (GUI)
 if CoreGui:FindFirstChild("BerisRoTubeGUI") then
@@ -29,8 +29,8 @@ ScreenGui.Parent = CoreGui
 
 -- Marco Principal
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 250, 0, 310)
-MainFrame.Position = UDim2.new(0.5, -125, 0.5, -155)
+MainFrame.Size = UDim2.new(0, 260, 0, 310)
+MainFrame.Position = UDim2.new(0.5, -130, 0.5, -155)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -46,7 +46,7 @@ Corner.Parent = MainFrame
 local Titulo = Instance.new("TextLabel")
 Titulo.Size = UDim2.new(1, 0, 0, 40)
 Titulo.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Titulo.Text = " Beris Hub - RoTube Life 2"
+Titulo.Text = " Beris Hub - Auto Foto Perfecta"
 Titulo.TextColor3 = Color3.fromRGB(255, 255, 255)
 Titulo.TextSize = 15
 Titulo.Font = Enum.Font.GothamBold
@@ -110,7 +110,7 @@ Spacer.Parent = Contenedor
 -- Función creadora de botones
 local function CrearBoton(texto, color, contenedor)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 220, 0, 38)
+    btn.Size = UDim2.new(0, 230, 0, 38)
     btn.BackgroundColor3 = color
     btn.Text = texto
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -125,7 +125,7 @@ local function CrearBoton(texto, color, contenedor)
     return btn
 end
 
-local BtnAutoClick = CrearBoton("Auto-Clicker (Rastreador): OFF", Color3.fromRGB(180, 50, 50), Contenedor)
+local BtnAutoFoto = CrearBoton("Auto-Foto Perfecta (Minijuego): OFF", Color3.fromRGB(180, 50, 50), Contenedor)
 local BtnVelocidad = CrearBoton("Súper Velocidad: OFF", Color3.fromRGB(180, 50, 50), Contenedor)
 local BtnSalto = CrearBoton("Salto Infinito: OFF", Color3.fromRGB(180, 50, 50), Contenedor)
 local BtnTP1 = CrearBoton("TP: Guardar Posición", Color3.fromRGB(50, 100, 180), Contenedor)
@@ -136,10 +136,10 @@ local minimizado = false
 BtnMinimizar.MouseButton1Click:Connect(function()
     minimizado = not minimizado
     if minimizado then
-        MainFrame:TweenSize(UDim2.new(0, 250, 0, 40), "Out", "Quad", 0.3, true)
+        MainFrame:TweenSize(UDim2.new(0, 260, 0, 40), "Out", "Quad", 0.3, true)
         BtnMinimizar.Text = "+"
     else
-        MainFrame:TweenSize(UDim2.new(0, 250, 0, 310), "Out", "Quad", 0.3, true)
+        MainFrame:TweenSize(UDim2.new(0, 260, 0, 310), "Out", "Quad", 0.3, true)
         BtnMinimizar.Text = "-"
     end
 end)
@@ -148,7 +148,7 @@ BtnCerrar.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
     opciones.SuperVelocidad = false
     opciones.SaltoInfinito = false
-    opciones.AutoClicker = false
+    opciones.AutoFotoPerfecta = false
 end)
 
 -- 3. Lógica de Botones (ON/OFF y TPs)
@@ -163,7 +163,7 @@ local function ToggleBoton(btn, opcionNombre, textoBase)
     end
 end
 
-BtnAutoClick.MouseButton1Click:Connect(function() ToggleBoton(BtnAutoClick, "AutoClicker", "Auto-Clicker (Rastreador)") end)
+BtnAutoFoto.MouseButton1Click:Connect(function() ToggleBoton(BtnAutoFoto, "AutoFotoPerfecta", "Auto-Foto Perfecta (Minijuego)") end)
 BtnVelocidad.MouseButton1Click:Connect(function() ToggleBoton(BtnVelocidad, "SuperVelocidad", "Súper Velocidad") end)
 BtnSalto.MouseButton1Click:Connect(function() ToggleBoton(BtnSalto, "SaltoInfinito", "Salto Infinito") end)
 
@@ -190,58 +190,57 @@ end)
 
 -- 4. FUNCIONES DE AUTOMATIZACIÓN
 
--- [[ AUTO-CLICKER INTELIGENTE CON RASTREO Y BARRIDO MULTI-PUNTO ]]
+-- [[ DETECTOR INTELIGENTE DEL MINIJUEGO DE LA BARRA (FOTO PERFECTA) ]]
 task.spawn(function()
-    while task.wait(0.04) do
-        if opciones.AutoClicker then
-            -- 1. Activar herramienta equipada constantemente
-            local character = LocalPlayer.Character
-            if character then
-                local herramienta = character:FindFirstChildOfClass("Tool")
-                if herramienta then
-                    herramienta:Activate()
-                end
-            end
-            
-            -- 2. RASTREADOR DE BOTONES (Busca dónde está el objetivo móvil en pantalla)
+    while task.wait(0.01) do -- Escaneo ultra rápido para no perder el milisegundo exacto
+        if opciones.AutoFotoPerfecta and (tick() - ultimoClicTime) > 0.5 then
             pcall(function()
                 local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
                 if playerGui then
-                    for _, gui in pairs(playerGui:GetDescendants()) do
-                        -- Detectar botones o imágenes interactivas visibles
-                        if (gui:IsA("ImageButton") or gui:IsA("TextButton")) and gui.Visible and gui.Active then
-                            -- Evitar hacer clic en nuestro propio menú Beris Hub
-                            if not gui:IsDescendantOf(ScreenGui) then
-                                local posX = gui.AbsolutePosition.X + (gui.AbsoluteSize.X / 2)
-                                local posY = gui.AbsolutePosition.Y + (gui.AbsoluteSize.Y / 2)
-                                
-                                -- Tocar exactamente las coordenadas donde se movió el botón
-                                VirtualInputManager:SendMouseButtonEvent(posX, posY, 0, true, game, 0)
-                                task.wait()
-                                VirtualInputManager:SendMouseButtonEvent(posX, posY, 0, false, game, 0)
+                    for _, screenGui in pairs(playerGui:GetChildren()) do
+                        if screenGui:IsA("ScreenGui") and screenGui.Enabled then
+                            for _, barra in pairs(screenGui:GetDescendants()) do
+                                -- Buscamos la barra blanca del fondo en la parte inferior de la pantalla
+                                if barra:IsA("Frame") and barra.Visible and barra.AbsoluteSize.X > 150 and barra.AbsoluteSize.Y < 60 and barra.AbsolutePosition.Y > (Camera.ViewportSize.Y * 0.5) then
+                                    local zonaVerde = nil
+                                    local lineaRoja = nil
+                                    
+                                    -- Identificamos cuál es el cuadro verde y cuál es la línea roja que se mueve
+                                    for _, elem in pairs(barra:GetDescendants()) do
+                                        if (elem:IsA("Frame") or elem:IsA("ImageLabel")) and elem.Visible then
+                                            -- La zona verde/amarilla tiene un ancho mediano (entre 20px y el 70% de la barra)
+                                            if elem.AbsoluteSize.X >= 20 and elem.AbsoluteSize.X <= (barra.AbsoluteSize.X * 0.7) then
+                                                zonaVerde = elem
+                                            -- La línea roja móvil es muy fina (menos de 18px de ancho)
+                                            elseif elem.AbsoluteSize.X > 0 and elem.AbsoluteSize.X <= 18 then
+                                                lineaRoja = elem
+                                            end
+                                        end
+                                    end
+                                    
+                                    -- Si la barra del minijuego está activa en pantalla
+                                    if zonaVerde and lineaRoja then
+                                        local centroLineaX = lineaRoja.AbsolutePosition.X + (lineaRoja.AbsoluteSize.X / 2)
+                                        local inicioZonaX = zonaVerde.AbsolutePosition.X
+                                        local finZonaX = inicioZonaX + zonaVerde.AbsoluteSize.X
+                                        
+                                        -- ¡EN EL MOMENTO EXACTO en que la línea roja entra a la zona verde/amarilla!
+                                        if centroLineaX >= inicioZonaX and centroLineaX <= finZonaX then
+                                            ultimoClicTime = tick() -- Bloqueamos por medio segundo para no hacer doble clic
+                                            
+                                            -- Mandamos el toque táctil perfecto
+                                            local tapX = Camera.ViewportSize.X / 2
+                                            local tapY = Camera.ViewportSize.Y / 2
+                                            VirtualInputManager:SendMouseButtonEvent(tapX, tapY, 0, true, game, 0)
+                                            task.wait()
+                                            VirtualInputManager:SendMouseButtonEvent(tapX, tapY, 0, false, game, 0)
+                                            break
+                                        end
+                                    end
+                                end
                             end
                         end
                     end
-                end
-            end)
-            
-            -- 3. BARRIDO DE PANTALLA (Por si el objetivo no es un botón GUI tradicional)
-            pcall(function()
-                local sizeX = Camera.ViewportSize.X
-                local sizeY = Camera.ViewportSize.Y
-                
-                -- Puntos clave donde suele moverse la barra o el objetivo
-                local puntos = {
-                    Vector2.new(sizeX * 0.5, sizeY * 0.5), -- Centro
-                    Vector2.new(sizeX * 0.35, sizeY * 0.5), -- Izquierda
-                    Vector2.new(sizeX * 0.65, sizeY * 0.5), -- Derecha
-                    Vector2.new(sizeX * 0.5, sizeY * 0.35), -- Arriba
-                    Vector2.new(sizeX * 0.5, sizeY * 0.65)  -- Abajo
-                }
-                
-                for _, pt in pairs(puntos) do
-                    VirtualInputManager:SendMouseButtonEvent(pt.X, pt.Y, 0, true, game, 0)
-                    VirtualInputManager:SendMouseButtonEvent(pt.X, pt.Y, 0, false, game, 0)
                 end
             end)
         end
@@ -276,4 +275,4 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
-print("Beris Hub - Rastreador Inteligente Cargado.")
+print("Beris Hub - Auto-Foto Perfecta Cargado.")
