@@ -1,37 +1,39 @@
--- [[ BERIS HUB - MENÚ DE MOVIMIENTO AVANZADO ]]
+-- [[ BERIS HUB - ROTUBE LIFE 2 EDITION ]]
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local VirtualUser = game:GetService("VirtualUser")
 
 local LocalPlayer = Players.LocalPlayer
 
 -- Variables de Estado
 local opciones = {
     SuperVelocidad = false,
-    SaltoInfinito = false
+    SaltoInfinito = false,
+    AutoClicker = false
 }
-local posicionGuardada = nil -- Aquí se guardará el TP
-local VELOCIDAD_EXTRA = 60 -- Velocidad del empuje (ajusta si quieres más o menos)
+local posicionGuardada = nil
+local VELOCIDAD_EXTRA = 60
 
 -- 1. Crear la Interfaz (GUI)
-if CoreGui:FindFirstChild("BerisMovimientoGUI") then
-    CoreGui.BerisMovimientoGUI:Destroy()
+if CoreGui:FindFirstChild("BerisRoTubeGUI") then
+    CoreGui.BerisRoTubeGUI:Destroy()
 end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "BerisMovimientoGUI"
+ScreenGui.Name = "BerisRoTubeGUI"
 ScreenGui.Parent = CoreGui
 
 -- Marco Principal
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 250, 0, 280) -- Altura ampliada para más botones
-MainFrame.Position = UDim2.new(0.5, -125, 0.5, -140)
+MainFrame.Size = UDim2.new(0, 250, 0, 310)
+MainFrame.Position = UDim2.new(0.5, -125, 0.5, -155)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true 
-MainFrame.ClipsDescendants = true -- Clave para que el minimizar funcione perfecto
+MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 
 local Corner = Instance.new("UICorner")
@@ -42,14 +44,13 @@ Corner.Parent = MainFrame
 local Titulo = Instance.new("TextLabel")
 Titulo.Size = UDim2.new(1, 0, 0, 40)
 Titulo.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Titulo.Text = " Beris Hub - Movimiento"
+Titulo.Text = " Beris Hub - RoTube Life 2"
 Titulo.TextColor3 = Color3.fromRGB(255, 255, 255)
-Titulo.TextSize = 16
+Titulo.TextSize = 15
 Titulo.Font = Enum.Font.GothamBold
 Titulo.TextXAlignment = Enum.TextXAlignment.Left
 Titulo.Parent = MainFrame
 
--- Padding para que el título no quede pegado al borde izquierdo
 local UIPadding = Instance.new("UIPadding")
 UIPadding.PaddingLeft = UDim.new(0, 10)
 UIPadding.Parent = Titulo
@@ -99,16 +100,15 @@ UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 UIListLayout.Padding = UDim.new(0, 10)
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
--- Espacio superior invisible para separar los botones del título
 local Spacer = Instance.new("Frame")
 Spacer.Size = UDim2.new(1, 0, 0, 5)
 Spacer.BackgroundTransparency = 1
 Spacer.Parent = Contenedor
 
--- Función creadora de botones para no repetir código
+-- Función creadora de botones
 local function CrearBoton(texto, color, contenedor)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 220, 0, 40)
+    btn.Size = UDim2.new(0, 220, 0, 38)
     btn.BackgroundColor3 = color
     btn.Text = texto
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -123,6 +123,7 @@ local function CrearBoton(texto, color, contenedor)
     return btn
 end
 
+local BtnAutoClick = CrearBoton("Auto-Clicker (Farm Vistas): OFF", Color3.fromRGB(180, 50, 50), Contenedor)
 local BtnVelocidad = CrearBoton("Súper Velocidad: OFF", Color3.fromRGB(180, 50, 50), Contenedor)
 local BtnSalto = CrearBoton("Salto Infinito: OFF", Color3.fromRGB(180, 50, 50), Contenedor)
 local BtnTP1 = CrearBoton("TP: Guardar Posición", Color3.fromRGB(50, 100, 180), Contenedor)
@@ -136,7 +137,7 @@ BtnMinimizar.MouseButton1Click:Connect(function()
         MainFrame:TweenSize(UDim2.new(0, 250, 0, 40), "Out", "Quad", 0.3, true)
         BtnMinimizar.Text = "+"
     else
-        MainFrame:TweenSize(UDim2.new(0, 250, 0, 280), "Out", "Quad", 0.3, true)
+        MainFrame:TweenSize(UDim2.new(0, 250, 0, 310), "Out", "Quad", 0.3, true)
         BtnMinimizar.Text = "-"
     end
 end)
@@ -145,30 +146,24 @@ BtnCerrar.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
     opciones.SuperVelocidad = false
     opciones.SaltoInfinito = false
+    opciones.AutoClicker = false
 end)
 
--- 3. Lógica de Botones Activos (ON/OFF y TPs)
-BtnVelocidad.MouseButton1Click:Connect(function()
-    opciones.SuperVelocidad = not opciones.SuperVelocidad
-    if opciones.SuperVelocidad then
-        BtnVelocidad.BackgroundColor3 = Color3.fromRGB(50, 180, 50)
-        BtnVelocidad.Text = "Súper Velocidad: ON"
+-- 3. Lógica de Botones (ON/OFF y TPs)
+local function ToggleBoton(btn, opcionNombre, textoBase)
+    opciones[opcionNombre] = not opciones[opcionNombre]
+    if opciones[opcionNombre] then
+        btn.BackgroundColor3 = Color3.fromRGB(50, 180, 50)
+        btn.Text = textoBase .. ": ON"
     else
-        BtnVelocidad.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
-        BtnVelocidad.Text = "Súper Velocidad: OFF"
+        btn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+        btn.Text = textoBase .. ": OFF"
     end
-end)
+end
 
-BtnSalto.MouseButton1Click:Connect(function()
-    opciones.SaltoInfinito = not opciones.SaltoInfinito
-    if opciones.SaltoInfinito then
-        BtnSalto.BackgroundColor3 = Color3.fromRGB(50, 180, 50)
-        BtnSalto.Text = "Salto Infinito: ON"
-    else
-        BtnSalto.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
-        BtnSalto.Text = "Salto Infinito: OFF"
-    end
-end)
+BtnAutoClick.MouseButton1Click:Connect(function() ToggleBoton(BtnAutoClick, "AutoClicker", "Auto-Clicker (Farm Vistas)") end)
+BtnVelocidad.MouseButton1Click:Connect(function() ToggleBoton(BtnVelocidad, "SuperVelocidad", "Súper Velocidad") end)
+BtnSalto.MouseButton1Click:Connect(function() ToggleBoton(BtnSalto, "SaltoInfinito", "Salto Infinito") end)
 
 BtnTP1.MouseButton1Click:Connect(function()
     local rootPart = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -191,9 +186,28 @@ BtnTP2.MouseButton1Click:Connect(function()
     end
 end)
 
--- 4. Funciones de Trampas
+-- 4. FUNCIONES DE AUTOMATIZACIÓN
 
--- NUEVA VELOCIDAD BYPASS (Evita el Anti-Cheat)
+-- [[ AUTO-CLICKER ULTRA RÁPIDO PARA ROTUBE LIFE 2 ]]
+-- Usa Heartbeat para ejecutar clics a la máxima velocidad del servidor (60 clics/segundo)
+RunService.Heartbeat:Connect(function()
+    if opciones.AutoClicker then
+        -- 1. Simula el clic o toque en el centro de la pantalla
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton1(Vector2.new(0, 0))
+        
+        -- 2. Activa automáticamente tu cámara/teléfono/PC si lo tienes en la mano
+        local character = LocalPlayer.Character
+        if character then
+            local herramienta = character:FindFirstChildOfClass("Tool")
+            if herramienta then
+                herramienta:Activate()
+            end
+        end
+    end
+end)
+
+-- Súper Velocidad (Bypass Anti-Cheat)
 RunService.RenderStepped:Connect(function(deltaTime)
     if opciones.SuperVelocidad then
         local character = LocalPlayer.Character
@@ -201,9 +215,7 @@ RunService.RenderStepped:Connect(function(deltaTime)
             local humanoid = character:FindFirstChildOfClass("Humanoid")
             local rootPart = character:FindFirstChild("HumanoidRootPart")
             
-            -- Si el jugador se está moviendo usando el joystick o las teclas
             if humanoid and rootPart and humanoid.MoveDirection.Magnitude > 0 then
-                -- Empujamos el personaje hacia donde mira la cámara/movimiento
                 rootPart.CFrame = rootPart.CFrame + (humanoid.MoveDirection * (VELOCIDAD_EXTRA * deltaTime))
             end
         end
@@ -223,4 +235,4 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
-print("Beris Hub cargado. Bypass de velocidad activado.")
+print("Beris Hub - RoTube Life 2 cargado con Auto-Clicker de alta velocidad.")
