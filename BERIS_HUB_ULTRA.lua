@@ -1,4 +1,4 @@
--- [[ BERIS HUB - ROTUBE LIFE 2 (AUTO-FOTO PERFECTA / MINIJUEGO QTE) ]]
+-- [[ BERIS HUB - ROTUBE LIFE 2 (DETECCIÓN UNIVERSAL POR COLOR / QTE) ]]
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -16,7 +16,7 @@ local opciones = {
 }
 local posicionGuardada = nil
 local VELOCIDAD_EXTRA = 60
-local ultimoClicTime = 0 -- Evita hacer doble clic en una misma foto
+local ultimoClicTime = 0
 
 -- 1. Crear la Interfaz (GUI)
 if CoreGui:FindFirstChild("BerisRoTubeGUI") then
@@ -190,55 +190,70 @@ end)
 
 -- 4. FUNCIONES DE AUTOMATIZACIÓN
 
--- [[ DETECTOR INTELIGENTE DEL MINIJUEGO DE LA BARRA (FOTO PERFECTA) ]]
+-- [[ DETECTOR POR COLOR Y POSICIÓN (SIN LÍMITES DE PÍXELES ESTRICTOS) ]]
 task.spawn(function()
-    while task.wait(0.01) do -- Escaneo ultra rápido para no perder el milisegundo exacto
-        if opciones.AutoFotoPerfecta and (tick() - ultimoClicTime) > 0.5 then
+    while task.wait(0.01) do
+        if opciones.AutoFotoPerfecta and (tick() - ultimoClicTime) > 0.4 then
             pcall(function()
                 local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
                 if playerGui then
+                    -- Recorremos las interfaces activas
                     for _, screenGui in pairs(playerGui:GetChildren()) do
-                        if screenGui:IsA("ScreenGui") and screenGui.Enabled then
-                            for _, barra in pairs(screenGui:GetDescendants()) do
-                                -- Buscamos la barra blanca del fondo en la parte inferior de la pantalla
-                                if barra:IsA("Frame") and barra.Visible and barra.AbsoluteSize.X > 150 and barra.AbsoluteSize.Y < 60 and barra.AbsolutePosition.Y > (Camera.ViewportSize.Y * 0.5) then
-                                    local zonaVerde = nil
-                                    local lineaRoja = nil
+                        if screenGui:IsA("ScreenGui") and screenGui.Enabled and screenGui.Name ~= "BerisRoTubeGUI" then
+                            
+                            local lineaRoja = nil
+                            local zonaVerde = nil
+                            
+                            -- Buscamos elementos en la mitad inferior de la pantalla
+                            for _, elem in pairs(screenGui:GetDescendants()) do
+                                if (elem:IsA("Frame") or elem:IsA("ImageLabel")) and elem.Visible then
+                                    local pos = elem.AbsolutePosition
+                                    local size = elem.AbsoluteSize
                                     
-                                    -- Identificamos cuál es el cuadro verde y cuál es la línea roja que se mueve
-                                    for _, elem in pairs(barra:GetDescendants()) do
-                                        if (elem:IsA("Frame") or elem:IsA("ImageLabel")) and elem.Visible then
-                                            -- La zona verde/amarilla tiene un ancho mediano (entre 20px y el 70% de la barra)
-                                            if elem.AbsoluteSize.X >= 20 and elem.AbsoluteSize.X <= (barra.AbsoluteSize.X * 0.7) then
-                                                zonaVerde = elem
-                                            -- La línea roja móvil es muy fina (menos de 18px de ancho)
-                                            elseif elem.AbsoluteSize.X > 0 and elem.AbsoluteSize.X <= 18 then
+                                    -- Filtrar solo lo que esté en la zona de la barra inferior
+                                    if pos.Y > (Camera.ViewportSize.Y * 0.6) and size.Y > 5 and size.Y < 80 then
+                                        
+                                        -- 1. Identificar la Línea Roja (es delgada y roja/anaranjada)
+                                        if size.X <= 30 and size.X > 1 then
+                                            local color = elem:IsA("Frame") and elem.BackgroundColor3 or Color3.new(1, 1, 1)
+                                            -- Si tiene mucho rojo y menos verde/azul (típico color rojo de la línea)
+                                            if color.R > 0.7 and color.G < 0.4 then
                                                 lineaRoja = elem
                                             end
                                         end
-                                    end
-                                    
-                                    -- Si la barra del minijuego está activa en pantalla
-                                    if zonaVerde and lineaRoja then
-                                        local centroLineaX = lineaRoja.AbsolutePosition.X + (lineaRoja.AbsoluteSize.X / 2)
-                                        local inicioZonaX = zonaVerde.AbsolutePosition.X
-                                        local finZonaX = inicioZonaX + zonaVerde.AbsoluteSize.X
                                         
-                                        -- ¡EN EL MOMENTO EXACTO en que la línea roja entra a la zona verde/amarilla!
-                                        if centroLineaX >= inicioZonaX and centroLineaX <= finZonaX then
-                                            ultimoClicTime = tick() -- Bloqueamos por medio segundo para no hacer doble clic
-                                            
-                                            -- Mandamos el toque táctil perfecto
-                                            local tapX = Camera.ViewportSize.X / 2
-                                            local tapY = Camera.ViewportSize.Y / 2
-                                            VirtualInputManager:SendMouseButtonEvent(tapX, tapY, 0, true, game, 0)
-                                            task.wait()
-                                            VirtualInputManager:SendMouseButtonEvent(tapX, tapY, 0, false, game, 0)
-                                            break
+                                        -- 2. Identificar la Zona Verde/Amarilla (es un bloque más ancho en el centro)
+                                        if size.X > 25 and size.X < 300 then
+                                            local color = elem:IsA("Frame") and elem.BackgroundColor3 or Color3.new(1, 1, 1)
+                                            -- Si tiene verde alto o amarillo (R alto + G alto)
+                                            if color.G > 0.6 then
+                                                zonaVerde = elem
+                                            end
                                         end
                                     end
                                 end
                             end
+                            
+                            -- Si encontró ambos elementos en pantalla, calculamos el cruce
+                            if lineaRoja and zonaVerde then
+                                local centroX = lineaRoja.AbsolutePosition.X + (lineaRoja.AbsoluteSize.X / 2)
+                                local minX = zonaVerde.AbsolutePosition.X
+                                local maxX = minX + zonaVerde.AbsoluteSize.X
+                                
+                                -- Cuando la línea roja entra en la zona verde
+                                if centroX >= minX and centroX <= maxX then
+                                    ultimoClicTime = tick()
+                                    
+                                    -- Clic táctil en el centro de la pantalla
+                                    local tapX = Camera.ViewportSize.X / 2
+                                    local tapY = Camera.ViewportSize.Y / 2
+                                    VirtualInputManager:SendMouseButtonEvent(tapX, tapY, 0, true, game, 0)
+                                    task.wait()
+                                    VirtualInputManager:SendMouseButtonEvent(tapX, tapY, 0, false, game, 0)
+                                    break
+                                end
+                            end
+                            
                         end
                     end
                 end
@@ -275,4 +290,4 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
-print("Beris Hub - Auto-Foto Perfecta Cargado.")
+print("Beris Hub - Detector por Color Cargado.")
