@@ -1,4 +1,4 @@
--- [[ BERIS HUB - ROTUBE LIFE 2 (AUTO-CLICKER + FOTO INSTANTÁNEA) ]]
+-- [[ BERIS HUB - ROTUBE LIFE 2 (ANTICIPACIÓN BIDIRECCIONAL + AUTO-CLICKER) ]]
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -20,6 +20,9 @@ local VELOCIDAD_EXTRA = 60
 local ultimoClicFoto = 0
 local ultimoClicAuto = 0
 
+-- Variables para detectar la dirección de la línea roja
+local ultimaPosLineaX = 0
+
 -- 1. Crear la Interfaz (GUI)
 if CoreGui:FindFirstChild("BerisRoTubeGUI") then
     CoreGui.BerisRoTubeGUI:Destroy()
@@ -29,7 +32,7 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "BerisRoTubeGUI"
 ScreenGui.Parent = CoreGui
 
--- Marco Principal (Agrandado a 350 de alto para el nuevo botón)
+-- Marco Principal (Agrandado para 6 botones)
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 260, 0, 350)
 MainFrame.Position = UDim2.new(0.5, -130, 0.5, -175)
@@ -195,10 +198,10 @@ end)
 
 -- 4. FUNCIONES DE AUTOMATIZACIÓN
 
--- [[ AUTO-FOTO PERFECTA (DISPARO INSTANTÁNEO EN ZONA VERDE) ]]
+-- [[ AUTO-FOTO PERFECTA (ANTICIPACIÓN SEGÚN DIRECCIÓN) ]]
 RunService.Heartbeat:Connect(function()
     if not opciones.AutoFotoPerfecta then return end
-    if (tick() - ultimoClicFoto) < 0.40 then return end -- Evita hacer doble clic en un mismo intento
+    if (tick() - ultimoClicFoto) < 0.35 then return end
     
     pcall(function()
         local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
@@ -207,7 +210,7 @@ RunService.Heartbeat:Connect(function()
         for _, gui in pairs(playerGui:GetChildren()) do
             if gui:IsA("ScreenGui") and gui.Enabled and gui.Name ~= "BerisRoTubeGUI" then
                 for _, bar in pairs(gui:GetDescendants()) do
-                    -- Buscar la barra inferior del minijuego
+                    -- Buscar la barra blanca del minijuego abajo en la pantalla
                     if (bar:IsA("Frame") or bar:IsA("ImageLabel")) and bar.Visible then
                         if bar.AbsoluteSize.X >= 150 and bar.AbsoluteSize.Y >= 12 and bar.AbsoluteSize.Y <= 80 and bar.AbsolutePosition.Y > (Camera.ViewportSize.Y * 0.60) then
                             
@@ -217,8 +220,10 @@ RunService.Heartbeat:Connect(function()
                             for _, elem in pairs(bar:GetDescendants()) do
                                 if (elem:IsA("Frame") or elem:IsA("ImageLabel")) and elem.Visible then
                                     local ancho = elem.AbsoluteSize.X
+                                    -- 1. Línea roja vertical
                                     if ancho >= 2 and ancho <= 20 then
                                         lineaMovil = elem
+                                    -- 2. Cuadro amarillo/verde objetivo
                                     elseif ancho > 20 and ancho <= (bar.AbsoluteSize.X * 0.80) then
                                         zonaObjetivo = elem
                                     end
@@ -227,28 +232,45 @@ RunService.Heartbeat:Connect(function()
                             
                             if lineaMovil and zonaObjetivo then
                                 local centroLinea = lineaMovil.AbsolutePosition.X + (lineaMovil.AbsoluteSize.X / 2)
-                                
-                                -- MARGEN DE SEGURIDAD (5% en los bordes):
-                                -- Cubre casi todo el cuadro verde para disparar apenas entre,
-                                -- permitiendo que el retraso del celular haga caer el clic dentro.
                                 local inicioZona = zonaObjetivo.AbsolutePosition.X
+                                local finZona = inicioZona + zonaObjetivo.AbsoluteSize.X
+                                local centroZona = inicioZona + (zonaObjetivo.AbsoluteSize.X / 2)
                                 local anchoZona = zonaObjetivo.AbsoluteSize.X
                                 
-                                local zonaSeguraInicio = inicioZona + (anchoZona * 0.05)
-                                local zonaSeguraFin = (inicioZona + anchoZona) - (anchoZona * 0.05)
+                                -- DETECTAR DIRECCIÓN: ¿Va hacia la derecha o hacia la izquierda?
+                                local moviendoDerecha = (centroLinea >= ultimaPosLineaX)
+                                ultimaPosLineaX = centroLinea
                                 
-                                -- ¡DISPARO INMEDIATO AL TOCAR LO VERDE!
-                                if centroLinea >= zonaSeguraInicio and centroLinea <= zonaSeguraFin then
+                                local disparar = false
+                                
+                                -- ANTICIPACIÓN INTELIGENTE:
+                                -- Compensamos el retraso táctil disparando un poquito ANTES de que llegue al centro verde
+                                local margenAnticipacion = anchoZona * 0.25
+                                
+                                if moviendoDerecha then
+                                    -- Si va a la derecha: dispara justo cuando entra por la izquierda
+                                    local puntoDisparo = inicioZona - margenAnticipacion
+                                    if centroLinea >= puntoDisparo and centroLinea <= centroZona then
+                                        disparar = true
+                                    end
+                                else
+                                    -- Si va a la izquierda: dispara justo cuando entra por la derecha
+                                    local puntoDisparo = finZona + margenAnticipacion
+                                    if centroLinea <= puntoDisparo and centroLinea >= centroZona then
+                                        disparar = true
+                                    end
+                                end
+                                
+                                if disparar then
                                     ultimoClicFoto = tick()
                                     
-                                    -- Clic táctil en el centro superior (zona libre de botones)
+                                    -- Toque táctil en zona segura superior
                                     local safeX = Camera.ViewportSize.X * 0.5
                                     local safeY = Camera.ViewportSize.Y * 0.35
                                     
                                     VirtualInputManager:SendMouseButtonEvent(safeX, safeY, 0, true, game, 0)
                                     VirtualInputManager:SendMouseButtonEvent(safeX, safeY, 0, false, game, 0)
                                     
-                                    -- Activar la herramienta equipada por si acaso
                                     local char = LocalPlayer.Character
                                     if char then
                                         local tool = char:FindFirstChildOfClass("Tool")
@@ -274,7 +296,7 @@ RunService.Heartbeat:Connect(function()
     if opciones.ClicAutomatico and (tick() - ultimoClicAuto) >= 0.10 then
         ultimoClicAuto = tick()
         pcall(function()
-            -- 1. Activa la herramienta que tengas en la mano (cámara, teléfono, etc.)
+            -- 1. Activar herramienta equipada
             local char = LocalPlayer.Character
             if char then
                 local tool = char:FindFirstChildOfClass("Tool")
@@ -283,7 +305,7 @@ RunService.Heartbeat:Connect(function()
                 end
             end
             
-            -- 2. Manda un toque táctil en pantalla por si el juego requiere clics en el aire
+            -- 2. Toque táctil en pantalla
             local safeX = Camera.ViewportSize.X * 0.5
             local safeY = Camera.ViewportSize.Y * 0.35
             VirtualInputManager:SendMouseButtonEvent(safeX, safeY, 0, true, game, 0)
@@ -320,4 +342,4 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
-print("Beris Hub - AutoClicker + Foto Instantánea Cargado.")
+print("Beris Hub - Anticipación Bidireccional Cargado.")
