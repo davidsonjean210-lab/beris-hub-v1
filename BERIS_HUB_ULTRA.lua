@@ -1,10 +1,9 @@
--- [[ BERIS HUB - ROTUBE LIFE 2 (AUTO-FOTO ALTA VELOCIDAD / FRAME-PERFECT) ]]
+-- [[ BERIS HUB - ROTUBE LIFE 2 (PRECISIÓN CENTRAL / ANTI-FALLOS ROJOS) ]]
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
-local VirtualUser = game:GetService("VirtualUser")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
@@ -47,7 +46,7 @@ Corner.Parent = MainFrame
 local Titulo = Instance.new("TextLabel")
 Titulo.Size = UDim2.new(1, 0, 0, 40)
 Titulo.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Titulo.Text = " Beris Hub - Auto Foto Rápida"
+Titulo.Text = " Beris Hub - Foto Perfecta"
 Titulo.TextColor3 = Color3.fromRGB(255, 255, 255)
 Titulo.TextSize = 15
 Titulo.Font = Enum.Font.GothamBold
@@ -126,7 +125,7 @@ local function CrearBoton(texto, color, contenedor)
     return btn
 end
 
-local BtnAutoFoto = CrearBoton("Auto-Foto Perfecta (Alta Vel): OFF", Color3.fromRGB(180, 50, 50), Contenedor)
+local BtnAutoFoto = CrearBoton("Auto-Foto Perfecta (Minijuego): OFF", Color3.fromRGB(180, 50, 50), Contenedor)
 local BtnVelocidad = CrearBoton("Súper Velocidad: OFF", Color3.fromRGB(180, 50, 50), Contenedor)
 local BtnSalto = CrearBoton("Salto Infinito: OFF", Color3.fromRGB(180, 50, 50), Contenedor)
 local BtnTP1 = CrearBoton("TP: Guardar Posición", Color3.fromRGB(50, 100, 180), Contenedor)
@@ -164,7 +163,7 @@ local function ToggleBoton(btn, opcionNombre, textoBase)
     end
 end
 
-BtnAutoFoto.MouseButton1Click:Connect(function() ToggleBoton(BtnAutoFoto, "AutoFotoPerfecta", "Auto-Foto Perfecta (Alta Vel)") end)
+BtnAutoFoto.MouseButton1Click:Connect(function() ToggleBoton(BtnAutoFoto, "AutoFotoPerfecta", "Auto-Foto Perfecta (Minijuego)") end)
 BtnVelocidad.MouseButton1Click:Connect(function() ToggleBoton(BtnVelocidad, "SuperVelocidad", "Súper Velocidad") end)
 BtnSalto.MouseButton1Click:Connect(function() ToggleBoton(BtnSalto, "SaltoInfinito", "Salto Infinito") end)
 
@@ -191,62 +190,62 @@ end)
 
 -- 4. FUNCIONES DE AUTOMATIZACIÓN
 
--- [[ DETECTOR FRAME-PERFECT (60 FPS, SIN RETRASO) ]]
+-- [[ DETECTOR CON MARGEN DE PRECISIÓN CENTRAL (CERO ROJO / CERO MISS) ]]
 RunService.Heartbeat:Connect(function()
-    if opciones.AutoFotoPerfecta and (tick() - ultimoClicTime) > 0.35 then
+    if opciones.AutoFotoPerfecta and (tick() - ultimoClicTime) > 0.45 then
         pcall(function()
             local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
             if not playerGui then return end
             
-            -- Buscamos el contenedor de la barra en la zona inferior
             for _, gui in pairs(playerGui:GetChildren()) do
                 if gui:IsA("ScreenGui") and gui.Enabled and gui.Name ~= "BerisRoTubeGUI" then
                     
                     for _, bar in pairs(gui:GetDescendants()) do
-                        -- Identificar la barra principal del minijuego (ancha y abajo)
+                        -- Identificamos la barra principal inferior
                         if (bar:IsA("Frame") or bar:IsA("ImageLabel")) and bar.Visible then
-                            if bar.AbsoluteSize.X >= 140 and bar.AbsoluteSize.Y >= 12 and bar.AbsoluteSize.Y <= 70 and bar.AbsolutePosition.Y > (Camera.ViewportSize.Y * 0.55) then
+                            if bar.AbsoluteSize.X >= 150 and bar.AbsoluteSize.Y >= 12 and bar.AbsoluteSize.Y <= 80 and bar.AbsolutePosition.Y > (Camera.ViewportSize.Y * 0.60) then
                                 
                                 local lineaMovil = nil
                                 local zonaObjetivo = nil
                                 
-                                -- Escaneamos SOLO dentro de la barra (ultra rápido)
                                 for _, elem in pairs(bar:GetDescendants()) do
                                     if (elem:IsA("Frame") or elem:IsA("ImageLabel")) and elem.Visible then
                                         local ancho = elem.AbsoluteSize.X
                                         
-                                        -- 1. Línea delgada móvil (ancho entre 2 y 22 px)
-                                        if ancho >= 2 and ancho <= 22 then
+                                        -- 1. Línea roja indicadora (delgada)
+                                        if ancho >= 2 and ancho <= 20 then
                                             lineaMovil = elem
-                                        -- 2. Zona de éxito (ancho mediano, mayor a 25 px y menor que la barra completa)
-                                        elseif ancho > 25 and ancho <= (bar.AbsoluteSize.X * 0.85) then
+                                        -- 2. Cuadro verde/amarillo central
+                                        elseif ancho > 20 and ancho <= (bar.AbsoluteSize.X * 0.80) then
                                             zonaObjetivo = elem
                                         end
                                     end
                                 end
                                 
-                                -- Si encontramos la línea móvil y el objetivo en la misma barra
                                 if lineaMovil and zonaObjetivo then
                                     local centroLinea = lineaMovil.AbsolutePosition.X + (lineaMovil.AbsoluteSize.X / 2)
-                                    local inicioZona = zonaObjetivo.AbsolutePosition.X
-                                    local finZona = inicioZona + zonaObjetivo.AbsoluteSize.X
                                     
-                                    -- ¡MOMENTO EXACTO DE CRUCE!
-                                    if centroLinea >= inicioZona and centroLinea <= finZona then
+                                    -- CÁLCULO DE LA ZONA CENTRAL SEGURA (Evita los bordes para no dar "rojo/miss")
+                                    local inicioZona = zonaObjetivo.AbsolutePosition.X
+                                    local anchoZona = zonaObjetivo.AbsoluteSize.X
+                                    
+                                    -- Recortamos un 20% de cada lado de la zona verde para apuntar solo al centro exacto
+                                    local zonaSeguraInicio = inicioZona + (anchoZona * 0.20)
+                                    local zonaSeguraFin = (inicioZona + anchoZona) - (anchoZona * 0.20)
+                                    
+                                    -- ¡SOLO DISPARA SI ESTÁ BIEN ADENTRO DEL CUADRO VERDE!
+                                    if centroLinea >= zonaSeguraInicio and centroLinea <= zonaSeguraFin then
                                         ultimoClicTime = tick()
                                         
-                                        local centroX = Camera.ViewportSize.X / 2
-                                        local centroY = Camera.ViewportSize.Y / 2
+                                        -- Toque en Zona Segura superior (lejos de botones y joysticks)
+                                        local safeX = Camera.ViewportSize.X * 0.5
+                                        local safeY = Camera.ViewportSize.Y * 0.35
                                         
-                                        -- MÉTODO 1: VirtualInputManager (Toque Táctil)
-                                        VirtualInputManager:SendMouseButtonEvent(centroX, centroY, 0, true, game, 0)
-                                        VirtualInputManager:SendMouseButtonEvent(centroX, centroY, 0, false, game, 0)
+                                        VirtualInputManager:SendMouseButtonEvent(safeX, safeY, 0, true, game, 0)
+                                        task.wait()
+                                        VirtualInputManager:SendMouseButtonEvent(safeX, safeY, 0, false, game, 0)
                                         
-                                        -- MÉTODO 2: VirtualUser Clásico (Por si el celular lo requiere)
-                                        VirtualUser:CaptureController()
-                                        VirtualUser:ClickButton1(Vector2.new(centroX, centroY))
-                                        
-                                        -- MÉTODO 3: Activación de Herramienta en mano
+                                        -- Activar la cámara equipada
                                         local char = LocalPlayer.Character
                                         if char then
                                             local tool = char:FindFirstChildOfClass("Tool")
@@ -297,4 +296,4 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
-print("Beris Hub - Auto-Foto Alta Velocidad Cargado.")
+print("Beris Hub - Precisión Central Cargado.")
