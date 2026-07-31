@@ -1,4 +1,4 @@
--- [[ BERIS HUB - ROTUBE LIFE 2 (CÁLCULO PREDICTIVO / ANTICIPACIÓN DE FRAME) ]]
+-- [[ BERIS HUB - ROTUBE LIFE 2 (ESCUDO ANTI-SPAWN / CAPTURA EN 1RA PASADA) ]]
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -18,9 +18,9 @@ local posicionGuardada = nil
 local VELOCIDAD_EXTRA = 60
 local ultimoClicTime = 0
 
--- Variables de Predicción Matemática
-local ultimaPosLineaX = 0
-local ultimoTiempoFrame = tick()
+-- Control para evitar el clic instantáneo al aparecer el minijuego
+local minijuegoEnPantalla = false
+local tiempoAparicionGUI = 0
 
 -- 1. Crear la Interfaz (GUI)
 if CoreGui:FindFirstChild("BerisRoTubeGUI") then
@@ -194,94 +194,102 @@ end)
 
 -- 4. FUNCIONES DE AUTOMATIZACIÓN
 
--- [[ DETECTOR CON CÁLCULO PREDICTIVO DE VELOCIDAD Y ANTICIPACIÓN ]]
+-- [[ DETECTOR CON ESCUDO ANTI-SPAWN Y ANTICIPACIÓN DE DISPARO ]]
 RunService.Heartbeat:Connect(function()
-    local ahora = tick()
-    local deltaTiempo = ahora - ultimoTiempoFrame
-    ultimoTiempoFrame = ahora
-
-    if opciones.AutoFotoPerfecta and (ahora - ultimoClicTime) > 0.25 then
-        pcall(function()
-            local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
-            if not playerGui then return end
-            
-            for _, gui in pairs(playerGui:GetChildren()) do
-                if gui:IsA("ScreenGui") and gui.Enabled and gui.Name ~= "BerisRoTubeGUI" then
-                    
-                    for _, bar in pairs(gui:GetDescendants()) do
-                        -- Identificamos la barra inferior del minijuego
-                        if (bar:IsA("Frame") or bar:IsA("ImageLabel")) and bar.Visible then
-                            if bar.AbsoluteSize.X >= 150 and bar.AbsoluteSize.Y >= 12 and bar.AbsoluteSize.Y <= 80 and bar.AbsolutePosition.Y > (Camera.ViewportSize.Y * 0.60) then
-                                
-                                local lineaMovil = nil
-                                local zonaObjetivo = nil
-                                
-                                for _, elem in pairs(bar:GetDescendants()) do
-                                    if (elem:IsA("Frame") or elem:IsA("ImageLabel")) and elem.Visible then
-                                        local ancho = elem.AbsoluteSize.X
-                                        
-                                        -- 1. Línea roja indicadora
-                                        if ancho >= 2 and ancho <= 20 then
-                                            lineaMovil = elem
-                                        -- 2. Recuadro verde/amarillo central
-                                        elseif ancho > 20 and ancho <= (bar.AbsoluteSize.X * 0.80) then
-                                            zonaObjetivo = elem
-                                        end
+    if not opciones.AutoFotoPerfecta then return end
+    
+    pcall(function()
+        local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+        if not playerGui then return end
+        
+        local barraEncontrada = false
+        
+        for _, gui in pairs(playerGui:GetChildren()) do
+            if gui:IsA("ScreenGui") and gui.Enabled and gui.Name ~= "BerisRoTubeGUI" then
+                for _, bar in pairs(gui:GetDescendants()) do
+                    -- Identificar la barra principal del minijuego abajo
+                    if (bar:IsA("Frame") or bar:IsA("ImageLabel")) and bar.Visible then
+                        if bar.AbsoluteSize.X >= 150 and bar.AbsoluteSize.Y >= 12 and bar.AbsoluteSize.Y <= 80 and bar.AbsolutePosition.Y > (Camera.ViewportSize.Y * 0.60) then
+                            
+                            local lineaMovil = nil
+                            local zonaObjetivo = nil
+                            
+                            for _, elem in pairs(bar:GetDescendants()) do
+                                if (elem:IsA("Frame") or elem:IsA("ImageLabel")) and elem.Visible then
+                                    local ancho = elem.AbsoluteSize.X
+                                    if ancho >= 2 and ancho <= 20 then
+                                        lineaMovil = elem
+                                    elseif ancho > 20 and ancho <= (bar.AbsoluteSize.X * 0.80) then
+                                        zonaObjetivo = elem
                                     end
                                 end
-                                
-                                if lineaMovil and zonaObjetivo then
-                                    local centroLinea = lineaMovil.AbsolutePosition.X + (lineaMovil.AbsoluteSize.X / 2)
-                                    local centroZona = zonaObjetivo.AbsolutePosition.X + (zonaObjetivo.AbsoluteSize.X / 2)
-                                    local anchoZona = zonaObjetivo.AbsoluteSize.X
-                                    
-                                    -- CÁLCULO DE VELOCIDAD (Píxeles por segundo y dirección)
-                                    local velocidadX = 0
-                                    if ultimaPosLineaX > 0 and deltaTiempo > 0 and deltaTiempo < 0.1 then
-                                        velocidadX = (centroLinea - ultimaPosLineaX) / deltaTiempo
-                                    end
-                                    ultimaPosLineaX = centroLinea
-                                    
-                                    -- PREDICCIÓN MATEMÁTICA:
-                                    -- ¿Dónde estará la línea en 35 milisegundos (0.035s) para compensar el lag táctil?
-                                    local tiempoAnticipacion = 0.035
-                                    local posicionFutura = centroLinea + (velocidadX * tiempoAnticipacion)
-                                    
-                                    -- COMPROBACIÓN DEL CENTRO EXACTO:
-                                    -- Si la POSICIÓN FUTURA va a caer en el 30% central del cuadro verde, dispara AHORA.
-                                    local radioTolerancia = anchoZona * 0.18
-                                    if math.abs(posicionFutura - centroZona) <= radioTolerancia then
-                                        ultimoClicTime = tick()
-                                        
-                                        -- Toque en Zona Segura superior (aire vacío)
-                                        local safeX = Camera.ViewportSize.X * 0.5
-                                        local safeY = Camera.ViewportSize.Y * 0.35
-                                        
-                                        -- Clic táctil sin esperas
-                                        VirtualInputManager:SendMouseButtonEvent(safeX, safeY, 0, true, game, 0)
-                                        VirtualInputManager:SendMouseButtonEvent(safeX, safeY, 0, false, game, 0)
-                                        
-                                        -- Activar la herramienta de la cámara
-                                        local char = LocalPlayer.Character
-                                        if char then
-                                            local tool = char:FindFirstChildOfClass("Tool")
-                                            if tool then
-                                                tool:Activate()
-                                            end
-                                        end
-                                        
-                                        break
-                                    end
-                                end
-                                
                             end
+                            
+                            if lineaMovil and zonaObjetivo then
+                                barraEncontrada = true
+                                
+                                -- 1. ESCUDO ANTI-SPAWN:
+                                -- Si el minijuego acaba de aparecer, iniciamos el cronómetro
+                                if not minijuegoEnPantalla then
+                                    minijuegoEnPantalla = true
+                                    tiempoAparicionGUI = tick()
+                                end
+                                
+                                -- No hacemos NADA durante los primeros 0.35 segundos para que la línea empiece a moverse
+                                if (tick() - tiempoAparicionGUI) < 0.35 then
+                                    return
+                                end
+                                
+                                -- Respetar tiempo entre clics
+                                if (tick() - ultimoClicTime) < 0.30 then
+                                    return
+                                end
+                                
+                                local centroLinea = lineaMovil.AbsolutePosition.X + (lineaMovil.AbsoluteSize.X / 2)
+                                local centroZona = zonaObjetivo.AbsolutePosition.X + (zonaObjetivo.AbsoluteSize.X / 2)
+                                local anchoZona = zonaObjetivo.AbsoluteSize.X
+                                
+                                -- 2. ZONA DE ANTICIPACIÓN FIJA:
+                                -- Como la línea viaja rápido de izquierda a derecha, apuntamos al centro,
+                                -- pero permitiendo disparar un poquito antes (20% a la izquierda del centro)
+                                -- para compensar el retraso táctil del celular.
+                                local zonaInicio = centroZona - (anchoZona * 0.22)
+                                local zonaFin = centroZona + (anchoZona * 0.10)
+                                
+                                if centroLinea >= zonaInicio and centroLinea <= zonaFin then
+                                    ultimoClicTime = tick()
+                                    
+                                    -- Toque limpio al aire (Zona Segura superior)
+                                    local safeX = Camera.ViewportSize.X * 0.5
+                                    local safeY = Camera.ViewportSize.Y * 0.35
+                                    
+                                    VirtualInputManager:SendMouseButtonEvent(safeX, safeY, 0, true, game, 0)
+                                    VirtualInputManager:SendMouseButtonEvent(safeX, safeY, 0, false, game, 0)
+                                    
+                                    -- Activar la herramienta de cámara
+                                    local char = LocalPlayer.Character
+                                    if char then
+                                        local tool = char:FindFirstChildOfClass("Tool")
+                                        if tool then
+                                            tool:Activate()
+                                        end
+                                    end
+                                    
+                                    break
+                                end
+                            end
+                            
                         end
                     end
-                    
                 end
             end
-        end)
-    end
+        end
+        
+        -- Si la barra ya no está en pantalla, reiniciamos el estado
+        if not barraEncontrada then
+            minijuegoEnPantalla = false
+        end
+    end)
 end)
 
 -- Súper Velocidad (Bypass Anti-Cheat)
@@ -312,4 +320,4 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
-print("Beris Hub - Predicción de Movimiento Cargado.")
+print("Beris Hub - Escudo Anti-Spawn Cargado.")
