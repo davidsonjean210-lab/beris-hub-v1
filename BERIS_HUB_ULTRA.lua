@@ -1,4 +1,4 @@
--- [[ BERIS HUB - ROTUBE LIFE 2 (CAPTURA A LA PRIMERA / SIN RETRASO) ]]
+-- [[ BERIS HUB - ROTUBE LIFE 2 (CÁLCULO PREDICTIVO / ANTICIPACIÓN DE FRAME) ]]
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -17,6 +17,10 @@ local opciones = {
 local posicionGuardada = nil
 local VELOCIDAD_EXTRA = 60
 local ultimoClicTime = 0
+
+-- Variables de Predicción Matemática
+local ultimaPosLineaX = 0
+local ultimoTiempoFrame = tick()
 
 -- 1. Crear la Interfaz (GUI)
 if CoreGui:FindFirstChild("BerisRoTubeGUI") then
@@ -190,9 +194,13 @@ end)
 
 -- 4. FUNCIONES DE AUTOMATIZACIÓN
 
--- [[ DETECTOR DE ALTA RESPUESTA (MARGEN 10% / SIN RETRASOS) ]]
+-- [[ DETECTOR CON CÁLCULO PREDICTIVO DE VELOCIDAD Y ANTICIPACIÓN ]]
 RunService.Heartbeat:Connect(function()
-    if opciones.AutoFotoPerfecta and (tick() - ultimoClicTime) > 0.25 then
+    local ahora = tick()
+    local deltaTiempo = ahora - ultimoTiempoFrame
+    ultimoTiempoFrame = ahora
+
+    if opciones.AutoFotoPerfecta and (ahora - ultimoClicTime) > 0.25 then
         pcall(function()
             local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
             if not playerGui then return end
@@ -201,7 +209,7 @@ RunService.Heartbeat:Connect(function()
                 if gui:IsA("ScreenGui") and gui.Enabled and gui.Name ~= "BerisRoTubeGUI" then
                     
                     for _, bar in pairs(gui:GetDescendants()) do
-                        -- Identificamos la barra principal inferior
+                        -- Identificamos la barra inferior del minijuego
                         if (bar:IsA("Frame") or bar:IsA("ImageLabel")) and bar.Visible then
                             if bar.AbsoluteSize.X >= 150 and bar.AbsoluteSize.Y >= 12 and bar.AbsoluteSize.Y <= 80 and bar.AbsolutePosition.Y > (Camera.ViewportSize.Y * 0.60) then
                                 
@@ -212,10 +220,10 @@ RunService.Heartbeat:Connect(function()
                                     if (elem:IsA("Frame") or elem:IsA("ImageLabel")) and elem.Visible then
                                         local ancho = elem.AbsoluteSize.X
                                         
-                                        -- 1. Línea roja indicadora (delgada)
+                                        -- 1. Línea roja indicadora
                                         if ancho >= 2 and ancho <= 20 then
                                             lineaMovil = elem
-                                        -- 2. Cuadro verde/amarillo central
+                                        -- 2. Recuadro verde/amarillo central
                                         elseif ancho > 20 and ancho <= (bar.AbsoluteSize.X * 0.80) then
                                             zonaObjetivo = elem
                                         end
@@ -224,28 +232,36 @@ RunService.Heartbeat:Connect(function()
                                 
                                 if lineaMovil and zonaObjetivo then
                                     local centroLinea = lineaMovil.AbsolutePosition.X + (lineaMovil.AbsoluteSize.X / 2)
-                                    
-                                    -- MARGEN EQUILIBRADO (10% en lugar de 20%):
-                                    -- Evita los bordes peligrosos pero es lo bastante amplio para atrapar la línea en la primera pasada
-                                    local inicioZona = zonaObjetivo.AbsolutePosition.X
+                                    local centroZona = zonaObjetivo.AbsolutePosition.X + (zonaObjetivo.AbsoluteSize.X / 2)
                                     local anchoZona = zonaObjetivo.AbsoluteSize.X
                                     
-                                    local zonaSeguraInicio = inicioZona + (anchoZona * 0.10)
-                                    local zonaSeguraFin = (inicioZona + anchoZona) - (anchoZona * 0.10)
+                                    -- CÁLCULO DE VELOCIDAD (Píxeles por segundo y dirección)
+                                    local velocidadX = 0
+                                    if ultimaPosLineaX > 0 and deltaTiempo > 0 and deltaTiempo < 0.1 then
+                                        velocidadX = (centroLinea - ultimaPosLineaX) / deltaTiempo
+                                    end
+                                    ultimaPosLineaX = centroLinea
                                     
-                                    -- ¡DISPARO INMEDIATO AL CRUZAR EL ÁREA SEGURA!
-                                    if centroLinea >= zonaSeguraInicio and centroLinea <= zonaSeguraFin then
+                                    -- PREDICCIÓN MATEMÁTICA:
+                                    -- ¿Dónde estará la línea en 35 milisegundos (0.035s) para compensar el lag táctil?
+                                    local tiempoAnticipacion = 0.035
+                                    local posicionFutura = centroLinea + (velocidadX * tiempoAnticipacion)
+                                    
+                                    -- COMPROBACIÓN DEL CENTRO EXACTO:
+                                    -- Si la POSICIÓN FUTURA va a caer en el 30% central del cuadro verde, dispara AHORA.
+                                    local radioTolerancia = anchoZona * 0.18
+                                    if math.abs(posicionFutura - centroZona) <= radioTolerancia then
                                         ultimoClicTime = tick()
                                         
-                                        -- Toque en Zona Segura superior (sin atravesar menús ni joysticks)
+                                        -- Toque en Zona Segura superior (aire vacío)
                                         local safeX = Camera.ViewportSize.X * 0.5
                                         local safeY = Camera.ViewportSize.Y * 0.35
                                         
-                                        -- Presión y liberación instantáneas en el mismo frame
+                                        -- Clic táctil sin esperas
                                         VirtualInputManager:SendMouseButtonEvent(safeX, safeY, 0, true, game, 0)
                                         VirtualInputManager:SendMouseButtonEvent(safeX, safeY, 0, false, game, 0)
                                         
-                                        -- Activar la cámara equipada
+                                        -- Activar la herramienta de la cámara
                                         local char = LocalPlayer.Character
                                         if char then
                                             local tool = char:FindFirstChildOfClass("Tool")
@@ -296,4 +312,4 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
-print("Beris Hub - Captura Rápida Cargado.")
+print("Beris Hub - Predicción de Movimiento Cargado.")
