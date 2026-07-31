@@ -1,4 +1,4 @@
--- [[ BERIS HUB - ROTUBE LIFE 2 (PRECISIÓN CENTRAL / ANTI-FALLOS ROJOS) ]]
+-- [[ BERIS HUB - ROTUBE LIFE 2 (CAPTURA A LA PRIMERA / SIN RETRASO) ]]
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -190,9 +190,9 @@ end)
 
 -- 4. FUNCIONES DE AUTOMATIZACIÓN
 
--- [[ DETECTOR CON MARGEN DE PRECISIÓN CENTRAL (CERO ROJO / CERO MISS) ]]
+-- [[ DETECTOR DE ALTA RESPUESTA (MARGEN 10% / SIN RETRASOS) ]]
 RunService.Heartbeat:Connect(function()
-    if opciones.AutoFotoPerfecta and (tick() - ultimoClicTime) > 0.45 then
+    if opciones.AutoFotoPerfecta and (tick() - ultimoClicTime) > 0.25 then
         pcall(function()
             local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
             if not playerGui then return end
@@ -225,24 +225,24 @@ RunService.Heartbeat:Connect(function()
                                 if lineaMovil and zonaObjetivo then
                                     local centroLinea = lineaMovil.AbsolutePosition.X + (lineaMovil.AbsoluteSize.X / 2)
                                     
-                                    -- CÁLCULO DE LA ZONA CENTRAL SEGURA (Evita los bordes para no dar "rojo/miss")
+                                    -- MARGEN EQUILIBRADO (10% en lugar de 20%):
+                                    -- Evita los bordes peligrosos pero es lo bastante amplio para atrapar la línea en la primera pasada
                                     local inicioZona = zonaObjetivo.AbsolutePosition.X
                                     local anchoZona = zonaObjetivo.AbsoluteSize.X
                                     
-                                    -- Recortamos un 20% de cada lado de la zona verde para apuntar solo al centro exacto
-                                    local zonaSeguraInicio = inicioZona + (anchoZona * 0.20)
-                                    local zonaSeguraFin = (inicioZona + anchoZona) - (anchoZona * 0.20)
+                                    local zonaSeguraInicio = inicioZona + (anchoZona * 0.10)
+                                    local zonaSeguraFin = (inicioZona + anchoZona) - (anchoZona * 0.10)
                                     
-                                    -- ¡SOLO DISPARA SI ESTÁ BIEN ADENTRO DEL CUADRO VERDE!
+                                    -- ¡DISPARO INMEDIATO AL CRUZAR EL ÁREA SEGURA!
                                     if centroLinea >= zonaSeguraInicio and centroLinea <= zonaSeguraFin then
                                         ultimoClicTime = tick()
                                         
-                                        -- Toque en Zona Segura superior (lejos de botones y joysticks)
+                                        -- Toque en Zona Segura superior (sin atravesar menús ni joysticks)
                                         local safeX = Camera.ViewportSize.X * 0.5
                                         local safeY = Camera.ViewportSize.Y * 0.35
                                         
+                                        -- Presión y liberación instantáneas en el mismo frame
                                         VirtualInputManager:SendMouseButtonEvent(safeX, safeY, 0, true, game, 0)
-                                        task.wait()
                                         VirtualInputManager:SendMouseButtonEvent(safeX, safeY, 0, false, game, 0)
                                         
                                         -- Activar la cámara equipada
@@ -296,4 +296,4 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
-print("Beris Hub - Precisión Central Cargado.")
+print("Beris Hub - Captura Rápida Cargado.")
