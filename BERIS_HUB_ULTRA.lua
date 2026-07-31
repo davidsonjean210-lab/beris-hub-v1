@@ -1,4 +1,4 @@
--- [[ BERIS HUB - ROTUBE LIFE 2 (ESCUDO ANTI-SPAWN / CAPTURA EN 1RA PASADA) ]]
+-- [[ BERIS HUB - ROTUBE LIFE 2 (AUTO-CLICKER + FOTO INSTANTÁNEA) ]]
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -10,17 +10,15 @@ local Camera = workspace.CurrentCamera
 
 -- Variables de Estado
 local opciones = {
+    AutoFotoPerfecta = false,
+    ClicAutomatico = false,
     SuperVelocidad = false,
-    SaltoInfinito = false,
-    AutoFotoPerfecta = false
+    SaltoInfinito = false
 }
 local posicionGuardada = nil
 local VELOCIDAD_EXTRA = 60
-local ultimoClicTime = 0
-
--- Control para evitar el clic instantáneo al aparecer el minijuego
-local minijuegoEnPantalla = false
-local tiempoAparicionGUI = 0
+local ultimoClicFoto = 0
+local ultimoClicAuto = 0
 
 -- 1. Crear la Interfaz (GUI)
 if CoreGui:FindFirstChild("BerisRoTubeGUI") then
@@ -31,10 +29,10 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "BerisRoTubeGUI"
 ScreenGui.Parent = CoreGui
 
--- Marco Principal
+-- Marco Principal (Agrandado a 350 de alto para el nuevo botón)
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 260, 0, 310)
-MainFrame.Position = UDim2.new(0.5, -130, 0.5, -155)
+MainFrame.Size = UDim2.new(0, 260, 0, 350)
+MainFrame.Position = UDim2.new(0.5, -130, 0.5, -175)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -50,7 +48,7 @@ Corner.Parent = MainFrame
 local Titulo = Instance.new("TextLabel")
 Titulo.Size = UDim2.new(1, 0, 0, 40)
 Titulo.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Titulo.Text = " Beris Hub - Foto Perfecta"
+Titulo.Text = " Beris Hub - RoTube Life 2"
 Titulo.TextColor3 = Color3.fromRGB(255, 255, 255)
 Titulo.TextSize = 15
 Titulo.Font = Enum.Font.GothamBold
@@ -103,18 +101,18 @@ Contenedor.Parent = MainFrame
 local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.Parent = Contenedor
 UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-UIListLayout.Padding = UDim.new(0, 10)
+UIListLayout.Padding = UDim.new(0, 8)
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 local Spacer = Instance.new("Frame")
-Spacer.Size = UDim2.new(1, 0, 0, 5)
+Spacer.Size = UDim2.new(1, 0, 0, 3)
 Spacer.BackgroundTransparency = 1
 Spacer.Parent = Contenedor
 
 -- Función creadora de botones
 local function CrearBoton(texto, color, contenedor)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 230, 0, 38)
+    btn.Size = UDim2.new(0, 230, 0, 36)
     btn.BackgroundColor3 = color
     btn.Text = texto
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -130,6 +128,7 @@ local function CrearBoton(texto, color, contenedor)
 end
 
 local BtnAutoFoto = CrearBoton("Auto-Foto Perfecta (Minijuego): OFF", Color3.fromRGB(180, 50, 50), Contenedor)
+local BtnAutoClic = CrearBoton("Clic Automático: OFF", Color3.fromRGB(180, 50, 50), Contenedor)
 local BtnVelocidad = CrearBoton("Súper Velocidad: OFF", Color3.fromRGB(180, 50, 50), Contenedor)
 local BtnSalto = CrearBoton("Salto Infinito: OFF", Color3.fromRGB(180, 50, 50), Contenedor)
 local BtnTP1 = CrearBoton("TP: Guardar Posición", Color3.fromRGB(50, 100, 180), Contenedor)
@@ -143,19 +142,20 @@ BtnMinimizar.MouseButton1Click:Connect(function()
         MainFrame:TweenSize(UDim2.new(0, 260, 0, 40), "Out", "Quad", 0.3, true)
         BtnMinimizar.Text = "+"
     else
-        MainFrame:TweenSize(UDim2.new(0, 260, 0, 310), "Out", "Quad", 0.3, true)
+        MainFrame:TweenSize(UDim2.new(0, 260, 0, 350), "Out", "Quad", 0.3, true)
         BtnMinimizar.Text = "-"
     end
 end)
 
 BtnCerrar.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
+    opciones.AutoFotoPerfecta = false
+    opciones.ClicAutomatico = false
     opciones.SuperVelocidad = false
     opciones.SaltoInfinito = false
-    opciones.AutoFotoPerfecta = false
 end)
 
--- 3. Lógica de Botones (ON/OFF y TPs)
+-- 3. Lógica de Botones ON/OFF
 local function ToggleBoton(btn, opcionNombre, textoBase)
     opciones[opcionNombre] = not opciones[opcionNombre]
     if opciones[opcionNombre] then
@@ -168,6 +168,7 @@ local function ToggleBoton(btn, opcionNombre, textoBase)
 end
 
 BtnAutoFoto.MouseButton1Click:Connect(function() ToggleBoton(BtnAutoFoto, "AutoFotoPerfecta", "Auto-Foto Perfecta (Minijuego)") end)
+BtnAutoClic.MouseButton1Click:Connect(function() ToggleBoton(BtnAutoClic, "ClicAutomatico", "Clic Automático") end)
 BtnVelocidad.MouseButton1Click:Connect(function() ToggleBoton(BtnVelocidad, "SuperVelocidad", "Súper Velocidad") end)
 BtnSalto.MouseButton1Click:Connect(function() ToggleBoton(BtnSalto, "SaltoInfinito", "Salto Infinito") end)
 
@@ -194,20 +195,19 @@ end)
 
 -- 4. FUNCIONES DE AUTOMATIZACIÓN
 
--- [[ DETECTOR CON ESCUDO ANTI-SPAWN Y ANTICIPACIÓN DE DISPARO ]]
+-- [[ AUTO-FOTO PERFECTA (DISPARO INSTANTÁNEO EN ZONA VERDE) ]]
 RunService.Heartbeat:Connect(function()
     if not opciones.AutoFotoPerfecta then return end
+    if (tick() - ultimoClicFoto) < 0.40 then return end -- Evita hacer doble clic en un mismo intento
     
     pcall(function()
         local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
         if not playerGui then return end
         
-        local barraEncontrada = false
-        
         for _, gui in pairs(playerGui:GetChildren()) do
             if gui:IsA("ScreenGui") and gui.Enabled and gui.Name ~= "BerisRoTubeGUI" then
                 for _, bar in pairs(gui:GetDescendants()) do
-                    -- Identificar la barra principal del minijuego abajo
+                    -- Buscar la barra inferior del minijuego
                     if (bar:IsA("Frame") or bar:IsA("ImageLabel")) and bar.Visible then
                         if bar.AbsoluteSize.X >= 150 and bar.AbsoluteSize.Y >= 12 and bar.AbsoluteSize.Y <= 80 and bar.AbsolutePosition.Y > (Camera.ViewportSize.Y * 0.60) then
                             
@@ -226,47 +226,29 @@ RunService.Heartbeat:Connect(function()
                             end
                             
                             if lineaMovil and zonaObjetivo then
-                                barraEncontrada = true
-                                
-                                -- 1. ESCUDO ANTI-SPAWN:
-                                -- Si el minijuego acaba de aparecer, iniciamos el cronómetro
-                                if not minijuegoEnPantalla then
-                                    minijuegoEnPantalla = true
-                                    tiempoAparicionGUI = tick()
-                                end
-                                
-                                -- No hacemos NADA durante los primeros 0.35 segundos para que la línea empiece a moverse
-                                if (tick() - tiempoAparicionGUI) < 0.35 then
-                                    return
-                                end
-                                
-                                -- Respetar tiempo entre clics
-                                if (tick() - ultimoClicTime) < 0.30 then
-                                    return
-                                end
-                                
                                 local centroLinea = lineaMovil.AbsolutePosition.X + (lineaMovil.AbsoluteSize.X / 2)
-                                local centroZona = zonaObjetivo.AbsolutePosition.X + (zonaObjetivo.AbsoluteSize.X / 2)
+                                
+                                -- MARGEN DE SEGURIDAD (5% en los bordes):
+                                -- Cubre casi todo el cuadro verde para disparar apenas entre,
+                                -- permitiendo que el retraso del celular haga caer el clic dentro.
+                                local inicioZona = zonaObjetivo.AbsolutePosition.X
                                 local anchoZona = zonaObjetivo.AbsoluteSize.X
                                 
-                                -- 2. ZONA DE ANTICIPACIÓN FIJA:
-                                -- Como la línea viaja rápido de izquierda a derecha, apuntamos al centro,
-                                -- pero permitiendo disparar un poquito antes (20% a la izquierda del centro)
-                                -- para compensar el retraso táctil del celular.
-                                local zonaInicio = centroZona - (anchoZona * 0.22)
-                                local zonaFin = centroZona + (anchoZona * 0.10)
+                                local zonaSeguraInicio = inicioZona + (anchoZona * 0.05)
+                                local zonaSeguraFin = (inicioZona + anchoZona) - (anchoZona * 0.05)
                                 
-                                if centroLinea >= zonaInicio and centroLinea <= zonaFin then
-                                    ultimoClicTime = tick()
+                                -- ¡DISPARO INMEDIATO AL TOCAR LO VERDE!
+                                if centroLinea >= zonaSeguraInicio and centroLinea <= zonaSeguraFin then
+                                    ultimoClicFoto = tick()
                                     
-                                    -- Toque limpio al aire (Zona Segura superior)
+                                    -- Clic táctil en el centro superior (zona libre de botones)
                                     local safeX = Camera.ViewportSize.X * 0.5
                                     local safeY = Camera.ViewportSize.Y * 0.35
                                     
                                     VirtualInputManager:SendMouseButtonEvent(safeX, safeY, 0, true, game, 0)
                                     VirtualInputManager:SendMouseButtonEvent(safeX, safeY, 0, false, game, 0)
                                     
-                                    -- Activar la herramienta de cámara
+                                    -- Activar la herramienta equipada por si acaso
                                     local char = LocalPlayer.Character
                                     if char then
                                         local tool = char:FindFirstChildOfClass("Tool")
@@ -284,12 +266,30 @@ RunService.Heartbeat:Connect(function()
                 end
             end
         end
-        
-        -- Si la barra ya no está en pantalla, reiniciamos el estado
-        if not barraEncontrada then
-            minijuegoEnPantalla = false
-        end
     end)
+end)
+
+-- [[ CLIC AUTOMÁTICO (AUTO-CLICKER PARA FARMEO) ]]
+RunService.Heartbeat:Connect(function()
+    if opciones.ClicAutomatico and (tick() - ultimoClicAuto) >= 0.10 then
+        ultimoClicAuto = tick()
+        pcall(function()
+            -- 1. Activa la herramienta que tengas en la mano (cámara, teléfono, etc.)
+            local char = LocalPlayer.Character
+            if char then
+                local tool = char:FindFirstChildOfClass("Tool")
+                if tool then
+                    tool:Activate()
+                end
+            end
+            
+            -- 2. Manda un toque táctil en pantalla por si el juego requiere clics en el aire
+            local safeX = Camera.ViewportSize.X * 0.5
+            local safeY = Camera.ViewportSize.Y * 0.35
+            VirtualInputManager:SendMouseButtonEvent(safeX, safeY, 0, true, game, 0)
+            VirtualInputManager:SendMouseButtonEvent(safeX, safeY, 0, false, game, 0)
+        end)
+    end
 end)
 
 -- Súper Velocidad (Bypass Anti-Cheat)
@@ -320,4 +320,4 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
-print("Beris Hub - Escudo Anti-Spawn Cargado.")
+print("Beris Hub - AutoClicker + Foto Instantánea Cargado.")
